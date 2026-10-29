@@ -30,6 +30,10 @@ function fam_pdo(): PDO
 
 function fam_ensure_tables(PDO $pdo): void
 {
+    // テレビをつなぐときの 6 桁の番号（SQLite・MySQL 共通の書き方）
+    $pdo->exec('CREATE TABLE IF NOT EXISTS fam_pairs (
+        code VARCHAR(6) NOT NULL PRIMARY KEY, token VARCHAR(64) NOT NULL,
+        approved INT NOT NULL DEFAULT 0, created_at INT NOT NULL)');
     if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
         $pdo->exec('CREATE TABLE IF NOT EXISTS fam_members (
             id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, color TEXT NOT NULL,
@@ -120,6 +124,62 @@ function fam_logout(): void
 function fam_key_ok(?string $key): bool
 {
     return FAMILY_TV_KEY !== '' && $key !== null && hash_equals(FAMILY_TV_KEY, $key);
+}
+
+// ── テレビをつなぐ（テレビに 6 桁の番号を出し、ログインした iPhone でその番号を入れると鍵を渡す）──
+
+const FAM_PAIR_TTL = 600;
+
+function fam_pair_cleanup(): void
+{
+    fam_pdo()->prepare('DELETE FROM fam_pairs WHERE created_at < ?')->execute([time() - FAM_PAIR_TTL]);
+}
+
+/** 番号と、テレビだけが知る合言葉（token）を作る。使われていない番号が多すぎるときは null */
+function fam_pair_start(): ?array
+{
+    fam_pair_cleanup();
+    $pdo = fam_pdo();
+    if ((int)$pdo->query('SELECT COUNT(*) FROM fam_pairs')->fetchColumn() >= 20) {
+        return null;
+    }
+    $token = bin2hex(random_bytes(32));
+    for ($i = 0; $i < 10; $i++) {
+        $code = (string)random_int(100000, 999999);
+        try {
+            $pdo->prepare('INSERT INTO fam_pairs (code, token, approved, created_at) VALUES (?, ?, 0, ?)')
+                ->execute([$code, $token, time()]);
+            return ['code' => $code, 'token' => $token, 'expires_in' => FAM_PAIR_TTL];
+        } catch (PDOException $e) {
+            // 同じ番号がたまたま使われていたら作り直す
+        }
+    }
+    return null;
+}
+
+/** 承認されていればテレビの鍵を返す（番号は使い捨て） */
+function fam_pair_poll(string $code, string $token): array
+{
+    fam_pair_cleanup();
+    $st = fam_pdo()->prepare('SELECT token, approved FROM fam_pairs WHERE code = ?');
+    $st->execute([$code]);
+    $row = $st->fetch();
+    if (!$row || !hash_equals((string)$row['token'], $token)) {
+        return ['status' => 'expired'];
+    }
+    if (!(int)$row['approved']) {
+        return ['status' => 'waiting'];
+    }
+    fam_pdo()->prepare('DELETE FROM fam_pairs WHERE code = ?')->execute([$code]);
+    return ['status' => 'ok', 'key' => FAMILY_TV_KEY];
+}
+
+function fam_pair_approve(string $code): bool
+{
+    fam_pair_cleanup();
+    $st = fam_pdo()->prepare('UPDATE fam_pairs SET approved = 1 WHERE code = ?');
+    $st->execute([$code]);
+    return $st->rowCount() > 0;
 }
 
 // ── 家族メンバー ──────────────────────────────────────────

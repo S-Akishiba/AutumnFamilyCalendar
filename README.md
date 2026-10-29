@@ -43,7 +43,28 @@ Google TV に時計・年月日（曜日）・天気・雨雲レーダー・家�
 - 天気・雨雲：気象庁（天気予報、降水ナウキャスト）
 - 地図：国土地理院（淡色地図）
 
+## テレビをつなぐ
+
+- テレビ（アプリやブラウザ）で鍵なしの `/family/tv.php` を開くと 6 桁の番号が出る
+- iPhone の ⚙ →「テレビをつなぐ」にその番号を入れると、テレビに家族カレンダーが出る（鍵はテレビに保存され、次からはそのまま開く）
+- 番号は 10 分で変わる。鍵（`FAMILY_TV_KEY`）を変えると、テレビはまた番号の画面になる
+
+## Google TV アプリ（`tv-app/`）
+
+`tv.php` を全画面で出し続けるだけの Android TV アプリ（Java、外部ライブラリなし）。画面は消さない（スクリーンセーバーにならない）、つながらなければ 30 秒ごとにやり直す。
+リモコンの決定ボタン＝読み直し、戻るボタン 2 回＝終了。
+
+- 組み立て: Android Studio で `tv-app` を開く、または `cd tv-app; .\gradlew.bat assembleDebug`（できるのは `app/build/outputs/apk/debug/app-debug.apk`）
+- Chromecast with Google TV に入れる:
+  1. 設定 → システム → デバイス情報 →「Android TV OS ビルド」を 7 回押す（開発者向けオプションが出る）
+  2. Google Play で「Downloader」（AFTVnews）を入れる
+  3. 設定 → アプリ → セキュリティと制限 → 提供元不明のアプリ で Downloader を ON
+  4. Downloader で APK の URL（例: `https://aitakt.gardenas.net/family/familytv.apk`）を開いてインストール
+  5. アプリ一覧から「家族カレンダー」を開き、ホーム画面のお気に入りに追加する
+- 電源を入れたときに自動で開く（任意）: パソコンから `adb connect テレビのIP:5555` のあと
+  `adb shell appops set net.gardenas.aitakt.familytv SYSTEM_ALERT_WINDOW allow`
+- 作り直した APK が「インストールできません」となったら、署名が違うので一度アンインストールしてから入れる（つなぎ直しが必要）
+
 ## これから
 
-- `tv-app/`：Google TV（Chromecast with Google TV）用のアプリ。`tv.php` を全画面で表示し続ける
 - LINE：公式アカウント＋LIFF で、LINE の中からこの登録フォームを開く

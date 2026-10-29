@@ -1,0 +1,27 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'net.gardenas.aitakt.familytv'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'net.gardenas.aitakt.familytv'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+        // 開く画面（鍵は URL に入れない。初回はテレビに番号が出て、iPhone で入れるとつながる）
+        buildConfigField 'String', 'TV_URL', '"https://aitakt.gardenas.net/family/tv.php"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

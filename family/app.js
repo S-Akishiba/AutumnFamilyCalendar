@@ -206,6 +206,7 @@
     $('memberRows').innerHTML = data.members.map(memberRow).join('');
     if (!data.members.length) $('memberRows').innerHTML = memberRow({}, 0);
     $('settingsErr').textContent = '';
+    $('pairMsg').textContent = '';
     $('settings').showModal();
   });
   $('addMember').addEventListener('click', () => {
@@ -228,6 +229,18 @@
       await load();
     } catch (err) {
       $('settingsErr').textContent = err.message;
+    }
+  });
+  $('pairBtn').addEventListener('click', async () => {
+    const code = $('pairCode').value.replace(/\D/g, '');
+    if (code.length !== 6) { $('pairMsg').textContent = '6 桁の番号を入れてください'; return; }
+    $('pairMsg').textContent = 'つないでいます…';
+    try {
+      await api('pair_approve', { code });
+      $('pairMsg').textContent = 'つなぎました。テレビに家族カレンダーが出ます';
+      $('pairCode').value = '';
+    } catch (err) {
+      $('pairMsg').textContent = err.message;
     }
   });
   $('logoutBtn').addEventListener('click', async () => {

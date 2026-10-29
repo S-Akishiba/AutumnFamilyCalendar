@@ -98,5 +98,9 @@ legend { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .memberRow input[type=color] { width: 44px; height: 40px; padding: 2px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
 .memberRow input[type=text] { font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
 
+dialog h2.sub { font-size: 16px; margin-top: 8px; }
+.pairRow { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.pairRow input { font-size: 22px; letter-spacing: .2em; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--text); min-width: 0; }
+
 /* 広い画面では＋ボタンもスマホ幅の右下に */
 @media (min-width: 760px) { .fab { right: calc(50% - 360px + 18px); } }

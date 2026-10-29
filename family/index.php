@@ -22,7 +22,7 @@ $loggedIn = $configured && fam_logged_in();
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>家族カレンダー</title>
-<link rel="stylesheet" href="app.css?v=2">
+<link rel="stylesheet" href="app.css?v=3">
 </head>
 <body>
 <?php if (!$configured): ?>
@@ -108,6 +108,13 @@ $loggedIn = $configured && fam_logged_in();
       <h2>家族のメンバー</h2>
       <div id="memberRows"></div>
       <button type="button" id="addMember">＋ メンバーを追加</button>
+      <h2 class="sub">テレビをつなぐ</h2>
+      <p class="hint">テレビの家族カレンダーに出ている 6 桁の番号を入れてください。</p>
+      <div class="pairRow">
+        <input id="pairCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="off">
+        <button type="button" id="pairBtn">つなぐ</button>
+      </div>
+      <p class="hint" id="pairMsg"></p>
       <p class="err" id="settingsErr"></p>
       <div class="actions">
         <button type="button" id="logoutBtn" class="danger">ログアウト</button>
@@ -119,7 +126,7 @@ $loggedIn = $configured && fam_logged_in();
   </dialog>
 
   <script>window.FAM_COLORS = <?= json_encode(FAM_COLORS) ?>;</script>
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=2"></script>
 <?php endif; ?>
 </body>
 </html>

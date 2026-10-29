@@ -4,7 +4,8 @@ declare(strict_types=1);
 // 家族カレンダーの API
 //   GET  ?action=calendar&from=YYYY-MM-DD&to=YYYY-MM-DD  … 予定・メンバー・祝日（テレビは &key= で読める）
 //   GET  ?action=weather / radar                          … 天気・雨雲レーダーのコマ（同上）
-//   POST ?action=save / delete / members_save / login / logout（JSON。ログインが必要）
+//   POST ?action=save / delete / members_save / pair_approve / logout（JSON。ログインが必要）
+//   POST ?action=login / pair_start / pair_poll（ログインなし。テレビをつなぐ）
 
 require_once __DIR__ . '/lib/family.php';
 
@@ -32,6 +33,15 @@ if ($action === 'login' && $isPost) {
 if ($action === 'logout' && $isPost) {
     fam_logout();
     fam_json(['ok' => true]);
+}
+
+// テレビをつなぐ（番号を出す・承認を待つ）はログインなしで呼べる
+if ($action === 'pair_start' && $isPost) {
+    $p = fam_pair_start();
+    $p ? fam_json($p) : fam_json(['error' => 'しばらくしてからやり直してください'], 429);
+}
+if ($action === 'pair_poll' && $isPost) {
+    fam_json(fam_pair_poll((string)($body['code'] ?? ''), (string)($body['token'] ?? '')));
 }
 
 $canRead = fam_logged_in() || fam_key_ok($_GET['key'] ?? null);
@@ -70,6 +80,12 @@ try {
             fam_json(['ok' => true, 'id' => fam_event_save($body)]);
         case 'delete':
             fam_event_delete((int)($body['id'] ?? 0));
+            fam_json(['ok' => true]);
+        case 'pair_approve':
+            $code = preg_replace('/\D/', '', (string)($body['code'] ?? ''));
+            if (!fam_pair_approve($code)) {
+                fam_json(['error' => 'その番号は見つかりません（テレビに出ている 6 桁の番号を確かめてください）'], 404);
+            }
             fam_json(['ok' => true]);
         case 'members_save':
             fam_members_save((array)($body['members'] ?? []));

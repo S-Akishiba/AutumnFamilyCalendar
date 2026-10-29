@@ -1,0 +1,85 @@
+/* テレビ表示。16:9 の画面いっぱいに出すので、大きさは vw / vh で決める */
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --line: #2a313c;
+  --text: #f0f3f6;
+  --muted: #8b949e;
+  --sun: #ff7b72;
+  --sat: #79c0ff;
+  --today: #3d3415;
+  --accent: #f2cc60;
+}
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); cursor: none; }
+body { font-family: "Noto Sans JP", "Hiragino Sans", "Roboto", sans-serif; }
+#stage {
+  position: absolute; inset: 2.5vh 2vw; display: grid; gap: 1.6vh 2vw;
+  grid-template-columns: 37fr 35fr 28fr; grid-template-rows: 54fr 46fr;
+  transition: transform 2s, opacity 2s;
+}
+#stage.night { opacity: .45; }
+
+.left { display: flex; flex-direction: column; justify-content: center; }
+.date { font-size: 2.9vw; font-weight: 600; white-space: nowrap; }
+.date .sun { color: var(--sun); }
+.date .sat { color: var(--sat); }
+.holiday { font-size: 1.7vw; color: var(--sun); min-height: 1.3em; }
+.clock { font-size: 10.8vw; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.clock .sec { font-size: 3.4vw; color: var(--muted); margin-left: .6vw; }
+.weather { display: flex; gap: 1.8vw; margin-top: 2vh; font-size: 1.5vw; }
+.weather .w { display: flex; align-items: center; gap: .8vw; }
+.weather .icon { font-size: 2.9vw; line-height: 1; }
+.weather .lbl { color: var(--muted); font-size: 1.3vw; }
+.weather .max { color: var(--sun); }
+.weather .min { color: var(--sat); }
+.weather .pop { color: var(--muted); }
+
+.right { display: grid; grid-template-rows: 1fr 1fr; gap: 1.6vh; min-height: 0; }
+.block { background: var(--panel); border-radius: 1.2vw; padding: 1.4vh 1.4vw; min-height: 0; overflow: hidden; }
+.block h2 { margin: 0 0 1vh; font-size: 1.6vw; color: var(--accent); font-weight: 600; }
+.evlist { display: grid; gap: .8vh; }
+.ev { display: flex; align-items: center; gap: .8vw; font-size: 1.65vw; line-height: 1.25; }
+.ev .time { width: 8vw; flex: none; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 1.35vw; }
+.ev .title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev .who { display: flex; gap: .4vw; flex: none; }
+.tag { font-size: 1.2vw; color: #fff; border-radius: .5vw; padding: .1vw .6vw; font-weight: 600; }
+.tag.all { background: #6e7681; }
+.empty { color: var(--muted); font-size: 1.6vw; }
+.more { color: var(--muted); font-size: 1.3vw; }
+
+.weeks {
+  grid-column: 1 / 4; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto 1fr 1fr;
+  gap: .5vh .4vw; min-height: 0;
+}
+.weeks .wd { text-align: center; font-size: 1.3vw; color: var(--muted); }
+.weeks .wd.sun { color: var(--sun); }
+.weeks .wd.sat { color: var(--sat); }
+.cell { background: var(--panel); border-radius: .8vw; padding: .6vh .5vw; min-height: 0; overflow: hidden; }
+.cell.today { background: var(--today); outline: .2vw solid var(--accent); }
+.cell.past { opacity: .4; }
+.cell .num { font-size: 1.5vw; font-weight: 600; }
+.cell .num small { font-size: 1vw; margin-left: .4vw; font-weight: normal; color: var(--sun); }
+.cell.sun .num, .cell.hol .num { color: var(--sun); }
+.cell.sat .num { color: var(--sat); }
+.cell .e { font-size: 1.15vw; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-left: .35vw solid #6e7681; padding-left: .35vw; margin-top: .3vh; }
+
+/* 雨雲レーダー */
+.radar { position: relative; border-radius: 1.2vw; overflow: hidden; background: var(--panel); min-height: 0; }
+#map { position: absolute; inset: 0; background: #1b222c; }
+#map .base { filter: brightness(.55) saturate(.6); }
+.leaflet-container { font: inherit; }
+.home { width: 1vw; height: 1vw; border-radius: 50%; background: var(--accent); border: .2vw solid #000; box-sizing: border-box; }
+.radarLabel {
+  position: absolute; left: 0; right: 0; top: 0; z-index: 500; display: flex; justify-content: space-between; align-items: baseline;
+  padding: .8vh .8vw; background: linear-gradient(rgba(13, 17, 23, .85), rgba(13, 17, 23, 0)); font-size: 1.4vw; font-weight: 600;
+}
+.radarLabel .fc { color: var(--accent); }
+.radarLabel .credit { font-size: .8vw; font-weight: normal; color: var(--muted); }
+.radarBar { position: absolute; left: .8vw; right: .8vw; bottom: .8vh; z-index: 500; display: flex; gap: .2vw; }
+.radarBar i { flex: 1; height: .5vh; border-radius: .3vh; background: rgba(255, 255, 255, .25); }
+.radarBar i.fc { background: rgba(242, 204, 96, .35); }
+.radarBar i.on { background: #fff; }
+.radarBar i.fc.on { background: var(--accent); }
+
+.status { position: absolute; right: 0; bottom: -2vh; font-size: 1vw; color: var(--sun); }

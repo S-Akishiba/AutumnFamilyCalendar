@@ -1,0 +1,27 @@
+# パスワード・鍵の入った設定とデプロイ用のトークン（このリポジトリは公開なので絶対に入れない）
+*.local.php
+deploy.ps1
+.env
+.env.*
+
+# 手元での確認用の DB・ログ
+*.db
+*.sqlite
+*.log
+
+# エディタ・OS
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Android TV アプリのビルド物
+tv-app/.gradle/
+tv-app/build/
+tv-app/app/build/
+tv-app/local.properties
+*.apk
+*.aab
+*.jks
+*.keystore

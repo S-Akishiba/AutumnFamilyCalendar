@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 // 家族カレンダーの API
 //   GET  ?action=calendar&from=YYYY-MM-DD&to=YYYY-MM-DD  … 予定・メンバー・祝日（テレビは &key= で読める）
-//   GET  ?action=weather / radar                          … 天気・雨雲レーダーのコマ（同上）
+//   GET  ?action=weather / radar / news                   … 天気・雨雲レーダーのコマ・ニュースの見出し（同上）
 //   POST ?action=save / delete / members_save / pair_approve / logout（JSON。ログインが必要）
 //   POST ?action=login / pair_start / pair_poll（ログインなし。テレビをつなぐ）
 //   POST ?action=line_login / line_link（LINE の中から。ID トークンで確かめる）
@@ -95,6 +95,9 @@ try {
 
         case 'weather':
             fam_json(['weather' => fam_weather()]);
+
+        case 'news':
+            fam_json(['news' => fam_news()]);
 
         case 'radar':
             fam_json(['frames' => fam_radar_frames(), 'lat' => FAMILY_RADAR_LAT, 'lon' => FAMILY_RADAR_LON, 'zoom' => FAMILY_RADAR_ZOOM]);

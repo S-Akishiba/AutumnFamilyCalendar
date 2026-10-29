@@ -39,6 +39,12 @@ defined('FAMILY_RADAR_LAT') || define('FAMILY_RADAR_LAT', (float)fam_config('FAM
 defined('FAMILY_RADAR_LON') || define('FAMILY_RADAR_LON', (float)fam_config('FAMILY_RADAR_LON', 133.92));
 defined('FAMILY_RADAR_ZOOM') || define('FAMILY_RADAR_ZOOM', (int)fam_config('FAMILY_RADAR_ZOOM', 8));
 
+// テレビの上に流すニュースの RSS（カンマ区切りで、上から順に取れたものを使う。空にすると流さない）
+defined('FAMILY_NEWS_RSS') || define('FAMILY_NEWS_RSS', fam_config('FAMILY_NEWS_RSS',
+    'https://news.web.nhk/n-data/conf/na/rss/cat0.xml,https://www.nhk.or.jp/rss/news/cat0.xml,https://news.yahoo.co.jp/rss/topics/top-picks.xml'));
+// テレビの左上に出す制作者の名前
+defined('FAMILY_CREDIT') || define('FAMILY_CREDIT', fam_config('FAMILY_CREDIT', '制作：秋祭り実行委員会'));
+
 // LINE（未設定なら LINE の機能は使わない）
 // Messaging API チャネル（ボット）: チャネルシークレット・チャネルアクセストークン（長期）
 defined('FAMILY_LINE_CHANNEL_SECRET') || define('FAMILY_LINE_CHANNEL_SECRET', fam_config('FAMILY_LINE_CHANNEL_SECRET', ''));

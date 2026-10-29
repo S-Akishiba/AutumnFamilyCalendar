@@ -97,10 +97,14 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@300;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="tv.css?v=4">
+<link rel="stylesheet" href="tv.css?v=5">
 </head>
 <body>
 <div id="stage">
+  <header class="topbar">
+    <span class="credit-top"><?= h(FAMILY_CREDIT) ?></span>
+    <div class="ticker" id="ticker"><span class="src" id="newsSrc"></span><div class="track"><div class="run" id="newsRun"></div></div></div>
+  </header>
   <section class="left">
     <div class="date"><span id="ymd"></span> <span class="wd" id="wday"></span></div>
     <div class="holiday" id="holiday"></div>
@@ -126,6 +130,6 @@ window.FAM_KEY = <?= json_encode($key) ?>;
 try { if (window.FAM_KEY) localStorage.setItem('fam_tv_key', window.FAM_KEY); } catch (e) { /* 保存できない環境 */ }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="tv.js?v=4"></script>
+<script src="tv.js?v=5"></script>
 </body>
 </html>

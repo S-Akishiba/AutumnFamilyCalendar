@@ -586,6 +586,47 @@ function fam_radar_frames(): array
     return $frames;
 }
 
+// ── ニュース（RSS の見出しを 10 分キャッシュ。テレビの上の帯に流す）──
+
+/** 見出しの一覧 [['title' => …, 'time' => UNIX 時刻], …] と出どころ。取れなければ前回の分 */
+function fam_news(): array
+{
+    $cacheFile = sys_get_temp_dir() . '/fam_news.json';
+    if (is_file($cacheFile) && filemtime($cacheFile) > time() - 600) {
+        $cached = json_decode((string)file_get_contents($cacheFile), true);
+        if (is_array($cached)) {
+            return $cached;
+        }
+    }
+    $ctx = stream_context_create(['http' => ['timeout' => 6, 'header' => "User-Agent: family-calendar\r\n"]]);
+    foreach (array_filter(array_map('trim', explode(',', (string)FAMILY_NEWS_RSS))) as $url) {
+        $raw = @file_get_contents($url, false, $ctx);
+        $xml = $raw === false ? false : @simplexml_load_string($raw, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET);
+        if (!$xml || !isset($xml->channel->item)) {
+            continue;
+        }
+        $items = [];
+        foreach ($xml->channel->item as $it) {
+            $title = trim(preg_replace('/\s+/u', ' ', (string)$it->title));
+            if ($title !== '') {
+                $items[] = ['title' => mb_substr($title, 0, 80), 'time' => strtotime((string)$it->pubDate) ?: 0];
+            }
+        }
+        // 古いまま止まった RSS（2 日以上前のものしかない）は使わない
+        if (!$items || max(array_column($items, 'time')) < time() - 2 * 86400) {
+            continue;
+        }
+        usort($items, fn($a, $b) => $b['time'] <=> $a['time']);
+        $source = trim((string)$xml->channel->title);
+        $source = str_contains($source, 'NHK') ? 'NHKニュース' : (str_starts_with($source, 'Yahoo!') ? 'Yahoo!ニュース' : $source);
+        $news = ['source' => $source, 'items' => array_slice($items, 0, 12)];
+        @file_put_contents($cacheFile, json_encode($news, JSON_UNESCAPED_UNICODE));
+        return $news;
+    }
+    $old = is_file($cacheFile) ? json_decode((string)file_get_contents($cacheFile), true) : null;
+    return is_array($old) ? $old : ['source' => '', 'items' => []];
+}
+
 // ── 出力 ──────────────────────────────────────────────────
 
 function fam_json(mixed $data, int $status = 200): never

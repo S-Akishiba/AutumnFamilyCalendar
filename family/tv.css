@@ -20,12 +20,33 @@
 html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; }
 body { background: var(--bg); color: var(--text); font-family: "Noto Sans JP", "Hiragino Sans", "Roboto", sans-serif; }
 #stage {
-  position: absolute; inset: 2.6vh 2vw; display: grid; grid-template-columns: 43fr 57fr; gap: 2vw;
+  position: absolute; inset: 1.6vh 2vw 2.6vh; display: grid; grid-template-columns: 43fr 57fr; grid-template-rows: auto minmax(0, 1fr);
+  gap: 1.4vh 2vw;
   transition: transform 2s;
 }
 /* 夜は画面全体を同じだけ暗くする（中の枠だけ暗くすると灰色の箱に見える） */
 body::after { content: ""; position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 3s; z-index: 1000; }
 body.night::after { opacity: .35; }
+
+/* ── 上の帯：制作者の名前と、流れるニュース ── */
+.topbar { grid-column: 1 / 3; display: flex; align-items: center; gap: 1.2vw; min-width: 0; height: 4.4vh; }
+.credit-top { flex: none; font-size: 1.05vw; font-weight: 700; color: var(--muted); letter-spacing: .05em; }
+.ticker {
+  flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; background: var(--panel); border-radius: 3vh;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.ticker:not(.on) { visibility: hidden; }
+.ticker .src {
+  flex: none; height: 100%; display: flex; align-items: center; padding: 0 1vw; background: var(--accent); color: #fff;
+  font-size: .95vw; font-weight: 700; border-radius: 3vh 0 0 3vh;
+}
+.ticker .track { flex: 1; min-width: 0; overflow: hidden; height: 100%; display: flex; align-items: center;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 2%, #000 97%, transparent); mask-image: linear-gradient(90deg, transparent, #000 2%, #000 97%, transparent); }
+.ticker .run { display: inline-flex; white-space: nowrap; font-size: 1.35vw; font-weight: 500; will-change: transform; animation: ticker linear infinite; }
+.ticker .run span { padding-right: 3.5vw; }
+.ticker .run span::before { content: "◆"; color: var(--accent); margin-right: .6vw; font-size: .8em; }
+.ticker .run .t { color: var(--muted); font-size: .85em; margin-right: .5vw; font-family: "Outfit", "Roboto", sans-serif; }
+@keyframes ticker { from { transform: translateX(var(--from, 100%)); } to { transform: translateX(var(--to, -100%)); } }
 
 /* ── 左：日付・大きな時計・天気・雨雲 ── */
 .left { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto 1fr; min-height: 0; min-width: 0; overflow: hidden; }

@@ -1,4 +1,4 @@
-// 家族カレンダー：テレビ表示。時計は毎秒、予定（14 日分）は 1 分ごと、天気は 30 分ごと、雨雲レーダーは 5 分ごとに更新する。
+// 家族カレンダー：テレビ表示。時計は毎秒、予定（14 日分）は 1 分ごと、天気は 30 分ごと、雨雲レーダーは 5 分ごと、ニュースは 10 分ごとに更新する。
 // 色は時間帯で切り替える（朝＝空色・昼＝白・夕方〜夜＝生成り）
 (() => {
   'use strict';
@@ -185,6 +185,44 @@
         ${d.pop !== null ? ` <span class="pop">☂${d.pop}%</span>` : ''}</span></div>`).join('');
   }
 
+  // ── ニュース（上の帯に右から左へ流す。新しい見出しは 1 周流れ終わってから入れ替える）──
+  let newsPending = null;
+  let newsShown = '';
+  async function loadNews() {
+    try {
+      const n = (await get('news')).news;
+      if (n && n.items && n.items.length) {
+        newsPending = n;
+        if (!newsShown) showNews();
+      }
+    } catch (err) { /* 前回のまま */ }
+  }
+  function showNews() {
+    if (!newsPending) return;
+    const n = newsPending;
+    newsPending = null;
+    const html = n.items.map((it) => {
+      const d = new Date(it.time * 1000);
+      return `<span><b class="t">${d.getHours()}:${pad(d.getMinutes())}</b>${esc(it.title)}</span>`;
+    }).join('');
+    if (html === newsShown) return;
+    newsShown = html;
+    $('newsSrc').textContent = n.source || 'ニュース';
+    const run = $('newsRun');
+    run.innerHTML = html;
+    // 帯の右端から出て、最後の見出しが左端に消えるまで。速さは画面の幅の 6% / 秒
+    const trackW = run.parentElement.clientWidth;
+    const runW = run.scrollWidth;
+    run.style.setProperty('--from', `${trackW}px`);
+    run.style.setProperty('--to', `${-runW}px`);
+    run.style.animationDuration = `${Math.max(20, (trackW + runW) / (window.innerWidth * 0.06))}s`;
+    run.style.animationName = 'none';
+    void run.offsetWidth; // アニメーションを最初から
+    run.style.animationName = '';
+    $('ticker').classList.add('on');
+  }
+  $('newsRun').addEventListener('animationiteration', showNews);
+
   // ── 雨雲レーダー（過去 1 時間〜1 時間先を 10 分ごとに、コマ送りで繰り返す）──
   const JMA = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/';
   let map = null;
@@ -257,4 +295,6 @@
   setInterval(loadCalendar, 60e3);
   loadWeather();
   setInterval(loadWeather, 30 * 60e3);
+  loadNews();
+  setInterval(loadNews, 10 * 60e3);
 })();

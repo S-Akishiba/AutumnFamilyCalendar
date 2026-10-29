@@ -12,6 +12,7 @@ $loggedIn = $configured && fam_logged_in();
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<script>if (location.protocol === 'http:' && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') location.replace('https:' + location.href.slice(5));</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -21,7 +22,7 @@ $loggedIn = $configured && fam_logged_in();
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>家族カレンダー</title>
-<link rel="stylesheet" href="app.css?v=1">
+<link rel="stylesheet" href="app.css?v=2">
 </head>
 <body>
 <?php if (!$configured): ?>

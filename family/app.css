@@ -22,7 +22,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
   -webkit-text-size-adjust: 100%;
   padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
 }
+/* パソコンなど広い画面ではスマホと同じ幅で真ん中に */
+.bar, main { max-width: 720px; margin-left: auto; margin-right: auto; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 8px 14px; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
@@ -94,3 +97,6 @@ legend { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .memberRow { display: grid; grid-template-columns: 44px 1fr 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
 .memberRow input[type=color] { width: 44px; height: 40px; padding: 2px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
 .memberRow input[type=text] { font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+
+/* 広い画面では＋ボタンもスマホ幅の右下に */
+@media (min-width: 760px) { .fab { right: calc(50% - 360px + 18px); } }

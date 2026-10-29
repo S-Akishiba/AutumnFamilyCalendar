@@ -18,6 +18,7 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<script>if (location.protocol === 'http:' && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') location.replace('https:' + location.href.slice(5));</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>家族カレンダー</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">

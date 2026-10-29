@@ -106,6 +106,14 @@
   }
 
   // ── 予定の編集 ──
+  // LINE から開いたときは、その人を「だれの予定」の最初の選択にする（liff.php が覚える）
+  function defaultMember() {
+    try {
+      const id = Number(localStorage.getItem('fam_default_member'));
+      return id && data.members.some((m) => Number(m.id) === id) ? [id] : [];
+    } catch (e) { return []; }
+  }
+
   function chips(selectedIds) {
     $('memberChips').innerHTML = data.members.map((m) =>
       `<button type="button" data-id="${m.id}" class="${selectedIds.includes(Number(m.id)) ? 'on' : ''}" style="--c:${esc(m.color)}">${esc(m.name)}</button>`
@@ -140,7 +148,7 @@
       f.start_date.value = day || selected || ymd(new Date());
       f.all_day.checked = true;
     }
-    chips(ev ? ev.member_ids : []);
+    chips(ev ? ev.member_ids : defaultMember());
     syncForm();
     $('editor').showModal();
   }

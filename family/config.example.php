@@ -26,3 +26,9 @@ define('FAMILY_WEATHER_AREA', '330000');
 define('FAMILY_RADAR_LAT', 34.66);
 define('FAMILY_RADAR_LON', 133.92);
 define('FAMILY_RADAR_ZOOM', 8);
+
+// LINE（README の「LINE から登録」の手順で作る。使わないなら書かなくてよい）
+define('FAMILY_LINE_CHANNEL_SECRET', '');    // Messaging API チャネル → チャネル基本設定 → チャネルシークレット
+define('FAMILY_LINE_ACCESS_TOKEN', '');      // Messaging API チャネル → Messaging API 設定 → チャネルアクセストークン（長期）
+define('FAMILY_LINE_LOGIN_CHANNEL_ID', '');  // LINE ログインチャネル → チャネル基本設定 → チャネル ID
+define('FAMILY_LIFF_ID', '');                // LINE ログインチャネル → LIFF → LIFF ID（例 2001234567-AbCdEfGh）

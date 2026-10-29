@@ -126,7 +126,7 @@ $loggedIn = $configured && fam_logged_in();
   </dialog>
 
   <script>window.FAM_COLORS = <?= json_encode(FAM_COLORS) ?>;</script>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 <?php endif; ?>
 </body>
 </html>

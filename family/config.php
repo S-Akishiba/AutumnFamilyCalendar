@@ -38,3 +38,11 @@ defined('FAMILY_WEATHER_AREA') || define('FAMILY_WEATHER_AREA', fam_config('FAMI
 defined('FAMILY_RADAR_LAT') || define('FAMILY_RADAR_LAT', (float)fam_config('FAMILY_RADAR_LAT', 34.66));
 defined('FAMILY_RADAR_LON') || define('FAMILY_RADAR_LON', (float)fam_config('FAMILY_RADAR_LON', 133.92));
 defined('FAMILY_RADAR_ZOOM') || define('FAMILY_RADAR_ZOOM', (int)fam_config('FAMILY_RADAR_ZOOM', 8));
+
+// LINE（未設定なら LINE の機能は使わない）
+// Messaging API チャネル（ボット）: チャネルシークレット・チャネルアクセストークン（長期）
+defined('FAMILY_LINE_CHANNEL_SECRET') || define('FAMILY_LINE_CHANNEL_SECRET', fam_config('FAMILY_LINE_CHANNEL_SECRET', ''));
+defined('FAMILY_LINE_ACCESS_TOKEN') || define('FAMILY_LINE_ACCESS_TOKEN', fam_config('FAMILY_LINE_ACCESS_TOKEN', ''));
+// LINE ログインチャネル: チャネル ID（ID トークンの確認に使う）と、その中に作った LIFF アプリの LIFF ID
+defined('FAMILY_LINE_LOGIN_CHANNEL_ID') || define('FAMILY_LINE_LOGIN_CHANNEL_ID', fam_config('FAMILY_LINE_LOGIN_CHANNEL_ID', ''));
+defined('FAMILY_LIFF_ID') || define('FAMILY_LIFF_ID', fam_config('FAMILY_LIFF_ID', ''));

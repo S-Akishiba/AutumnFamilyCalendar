@@ -30,6 +30,10 @@ function fam_pdo(): PDO
 
 function fam_ensure_tables(PDO $pdo): void
 {
+    // LINE で使う人（最初に家族のパスワードを入れた LINE アカウント。member_id は「だれの予定」の既定）
+    $pdo->exec('CREATE TABLE IF NOT EXISTS fam_line_users (
+        user_id VARCHAR(64) NOT NULL PRIMARY KEY, display_name VARCHAR(100) NOT NULL DEFAULT \'\',
+        member_id INT NULL, created_at INT NOT NULL)');
     // テレビをつなぐときの 6 桁の番号（SQLite・MySQL 共通の書き方）
     $pdo->exec('CREATE TABLE IF NOT EXISTS fam_pairs (
         code VARCHAR(6) NOT NULL PRIMARY KEY, token VARCHAR(64) NOT NULL,
@@ -99,12 +103,18 @@ function fam_login(string $password): bool
     if (!fam_is_configured() || !fam_password_ok($password)) {
         return false;
     }
+    fam_set_auth_cookie();
+    return true;
+}
+
+/** ログインした印の Cookie を付ける（パスワード・LINE のどちらでログインしても同じ） */
+function fam_set_auth_cookie(): void
+{
     $exp = time() + FAM_COOKIE_DAYS * 86400;
     setcookie(FAM_COOKIE, $exp . '.' . fam_sign('auth|' . $exp), [
         'expires' => $exp, 'path' => '/family/', 'secure' => !empty($_SERVER['HTTPS']),
         'httponly' => true, 'samesite' => 'Lax',
     ]);
-    return true;
 }
 
 /** FAMILY_PASSWORD_HASH は password_hash() の値か、PowerShell で作れる「sha256:16進」 */

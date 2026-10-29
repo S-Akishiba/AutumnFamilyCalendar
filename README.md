@@ -80,6 +80,32 @@ Google TV に時計・年月日（曜日）・天気・雨雲レーダー・家�
 
 パソコンから `adb connect テレビのIP:5555` のあと `adb shell appops set net.gardenas.aitakt.familytv SYSTEM_ALERT_WINDOW allow`
 
+## LINE から登録
+
+LINE 公式アカウント（ボット）を家族が友だち追加し、トークのメニューから LINE の中で登録画面を開く。
+最初の 1 回だけ家族のパスワードと「自分はだれか」を入れる（`fam_line_users`）。次からは LINE のアカウントでそのまま開く。
+ボットに「今日」「明日」「今週」と送ると予定を返事する（返信なので無料。グループではその言葉にだけ答える）。
+
+### つくりかた
+
+1. **LINE 公式アカウント**: https://entry.line.biz/ で作る（無料のコミュニケーションプラン）
+2. **Messaging API**: LINE Official Account Manager → 設定 → Messaging API →「Messaging API を利用する」（プロバイダーは新しく「家族カレンダー」などで作る）
+3. **LINE Developers**（https://developers.line.biz/console/）でそのチャネルを開く
+   - チャネル基本設定 → **チャネルシークレット** → `FAMILY_LINE_CHANNEL_SECRET`
+   - Messaging API 設定 → **チャネルアクセストークン（長期）**を発行 → `FAMILY_LINE_ACCESS_TOKEN`
+   - Messaging API 設定 → Webhook URL に `https://aitakt.gardenas.net/family/line_webhook.php`、「Webhook の利用」を ON
+   - 家族のグループでも使うなら「グループトーク・複数人トークへの参加を許可する」を ON
+4. Official Account Manager → 設定 → 応答設定 で「応答メッセージ」を OFF、「Webhook」を ON（自動の決まり文句を止める）
+5. **LINE ログインチャネル**: LINE Developers の同じプロバイダーで「新規チャネル作成」→ LINE ログイン（アプリタイプ＝ウェブアプリ）
+   - チャネル基本設定 → **チャネル ID** → `FAMILY_LINE_LOGIN_CHANNEL_ID`
+   - LIFF → 追加: サイズ＝Full、エンドポイント URL＝`https://aitakt.gardenas.net/family/liff.php`、Scope＝`openid` と `profile` → **LIFF ID** → `FAMILY_LIFF_ID`
+   - チャネルを「**公開済み**」にする（開発中のままだと作った人しか使えない）
+6. `family/config.local.php` に 4 つの値を書いて送る。Messaging API 設定の Webhook URL の「検証」で「成功」と出れば OK
+7. **リッチメニュー**（トークの下のボタン）: Official Account Manager → リッチメニュー → 作成
+   - テンプレート＝大きいサイズの横 3 分割、画像＝`tools/line_richmenu.png`
+   - A＝リンク `https://liff.line.me/（LIFF ID）`、B＝テキスト「今日」、C＝テキスト「今週」、表示期間を長く、メニューの初期状態＝表示
+8. 家族に公式アカウントの QR コード（Official Account Manager → ホーム → 友だちを増やす）で友だち追加してもらう
+
 ## これから
 
-- LINE：公式アカウント＋LIFF で、LINE の中からこの登録フォームを開く
+- LINE で予定の前日にお知らせ（プッシュは月 200 通まで無料）

@@ -18,8 +18,7 @@ Google TV に時計・年月日（曜日）・天気・雨雲レーダー・家�
 2. このフォルダで `deploy.example.ps1` を `deploy.ps1` にコピーし、`$TOKEN` に BackYard のデプロイ用トークンを入れる
 3. `family/config.example.php` を `family/config.local.php` にコピーして値を入れる
    - DB（MySQL）。テーブル `fam_members` / `fam_events` は初回アクセスで自動作成
-   - 家族のパスワード: `php -r "echo password_hash('パスワード', PASSWORD_DEFAULT), PHP_EOL;"` の結果を `FAMILY_PASSWORD_HASH` に
-   - `FAMILY_SECRET`（ログインの署名用）と `FAMILY_TV_KEY`（テレビ・購読 URL の鍵）は長いランダムな文字列
+   - 家族のパスワード・`FAMILY_SECRET`（ログインの署名用）・`FAMILY_TV_KEY`（テレビ・購読 URL の鍵）は、`.\tools\make-keys.ps1` を実行して出た 3 行で置き換える（パスワードはそのままは書かない）
    - 天気の地域 `FAMILY_WEATHER_AREA`（気象庁の府県予報区コード。岡山県=330000）
    - 雨雲レーダーの中心 `FAMILY_RADAR_LAT` / `FAMILY_RADAR_LON`（自宅のだいたいの位置）と縮尺 `FAMILY_RADAR_ZOOM`（7〜10）
 4. `.\deploy.ps1` で family フォルダを全部送る

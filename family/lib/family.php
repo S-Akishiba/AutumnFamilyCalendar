@@ -92,7 +92,7 @@ function fam_logged_in(): bool
 
 function fam_login(string $password): bool
 {
-    if (!fam_is_configured() || !password_verify($password, FAMILY_PASSWORD_HASH)) {
+    if (!fam_is_configured() || !fam_password_ok($password)) {
         return false;
     }
     $exp = time() + FAM_COOKIE_DAYS * 86400;
@@ -101,6 +101,15 @@ function fam_login(string $password): bool
         'httponly' => true, 'samesite' => 'Lax',
     ]);
     return true;
+}
+
+/** FAMILY_PASSWORD_HASH は password_hash() の値か、PowerShell で作れる「sha256:16進」 */
+function fam_password_ok(string $password): bool
+{
+    if (str_starts_with(FAMILY_PASSWORD_HASH, 'sha256:')) {
+        return hash_equals(strtolower(substr(FAMILY_PASSWORD_HASH, 7)), hash('sha256', $password));
+    }
+    return password_verify($password, FAMILY_PASSWORD_HASH);
 }
 
 function fam_logout(): void

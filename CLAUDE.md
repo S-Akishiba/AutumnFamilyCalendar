@@ -22,6 +22,8 @@
   - `lib/family.php` — DB（`fam_members` / `fam_events`、初回に自動作成）・ログイン・繰り返しの展開・祝日計算・天気・雨雲レーダー
   - `config.php`（コミットする）が `config.local.php`（コミットしない）を読む
 - `tv-app/` — Android TV アプリ（Java・外部ライブラリなし。tv.php を全画面 WebView で表示し続ける。開く URL は `app/build.gradle` の `TV_URL`）
+  - 自分で更新する: `familytv.json`（`publishApk` が書く）の versionCode が大きければ聞いて、APK を SHA-256 で確かめて PackageInstaller に渡す（`Updater.java`）
+  - 署名の鍵 `tv-app/familytv-release.p12` ＋ `tv-app/keystore.properties` はコミットしない。鍵が変わると上書き更新できない
 - テレビのつなぎ方: 鍵なしの tv.php は 6 桁の番号を出す（`fam_pairs`、10 分で失効）→ iPhone の ⚙ で番号を入れる（`pair_approve`）→ テレビに鍵を渡し localStorage に保存。アプリにもリポジトリにも鍵は入れない
 
 ## デプロイ

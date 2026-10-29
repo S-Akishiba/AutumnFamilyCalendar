@@ -25,3 +25,8 @@ tv-app/local.properties
 *.aab
 *.jks
 *.keystore
+*.p12
+# アプリの署名の鍵とパスワード（なくすと上書き更新できなくなるので別に保管する）
+tv-app/keystore.properties
+# publishApk が書く、サーバーに置く版の情報（APK と対で deploy.ps1 で送る）
+family/familytv.json

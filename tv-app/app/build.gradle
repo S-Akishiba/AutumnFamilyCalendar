@@ -1,5 +1,15 @@
+import java.security.MessageDigest
+
 plugins {
     id 'com.android.application'
+}
+
+// 署名の鍵（tv-app/keystore.properties と鍵のファイル。どちらもコミットしない）。
+// 同じ鍵で作った版でないと上書き更新できないので、鍵はなくさないこと
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
 }
 
 android {
@@ -10,10 +20,31 @@ android {
         applicationId 'net.gardenas.aitakt.familytv'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '1.0'
+        // 更新するときはここを 1 つ上げる（テレビは familytv.json の versionCode と比べる）
+        versionCode 2
+        versionName '1.1'
         // 開く画面（鍵は URL に入れない。初回はテレビに番号が出て、iPhone で入れるとつながる）
         buildConfigField 'String', 'TV_URL', '"https://aitakt.gardenas.net/family/tv.php"'
+        // 新しい版の情報
+        buildConfigField 'String', 'UPDATE_URL', '"https://aitakt.gardenas.net/family/familytv.json"'
+    }
+
+    signingConfigs {
+        release {
+            if (keystoreFile.exists()) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystoreFile.exists() ? signingConfigs.release : signingConfigs.debug
+        }
     }
 
     buildFeatures {
@@ -23,5 +54,29 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// .\gradlew.bat publishApk … 署名した APK を ../family/familytv.apk に、版の情報を ../family/familytv.json に書く。
+// そのあと deploy.ps1 で送れば、テレビに「新しい版があります」と出る
+tasks.register('publishApk') {
+    dependsOn 'assembleRelease'
+    doLast {
+        if (!keystoreFile.exists()) {
+            throw new GradleException('tv-app/keystore.properties がありません（署名の鍵がないと更新できる APK を作れません）')
+        }
+        def apk = file("$buildDir/outputs/apk/release/app-release.apk")
+        def out = rootProject.file('../family/familytv.apk')
+        out.bytes = apk.bytes
+        def sha = MessageDigest.getInstance('SHA-256').digest(apk.bytes).encodeHex().toString()
+        def cfg = android.defaultConfig
+        rootProject.file('../family/familytv.json').setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([
+            versionCode: cfg.versionCode,
+            versionName: cfg.versionName,
+            url        : 'familytv.apk',
+            sha256     : sha,
+            size       : apk.length(),
+        ])) + '\n', 'UTF-8')
+        println "familytv.apk / familytv.json を書きました（${cfg.versionName}、versionCode ${cfg.versionCode}）"
     }
 }

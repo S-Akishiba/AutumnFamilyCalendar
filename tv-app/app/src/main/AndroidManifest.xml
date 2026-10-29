@@ -6,6 +6,8 @@
     <!-- 電源を入れたときに自動で開く（Android 10 以降は adb で「他のアプリの上に重ねて表示」を許可したときだけ動く） -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 新しい版を自分で入れる（初回だけ「このアプリからのインストール」を許可する） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- テレビ用。タッチ画面もリーンバックも必須にはしない（スマホに入れても動くように） -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -37,7 +39,12 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".InstallReceiver"
+            android:exported="false" />
     </application>
 </manifest>

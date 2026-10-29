@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 
 /**
- * 電源を入れたら家族カレンダーを開く。
+ * 電源を入れたとき・更新が終わったときに家族カレンダーを開く。
  * Android 10 以降はアプリが自分で画面を開くのが制限されているので、
  * adb shell appops set net.gardenas.aitakt.familytv SYSTEM_ALERT_WINDOW allow
  * で許可したときだけ動く（許可しなければ何も起きない）。
@@ -13,7 +13,8 @@ import android.content.Intent;
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
+        String action = intent.getAction();
+        if (!Intent.ACTION_BOOT_COMPLETED.equals(action) && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
             return;
         }
         Intent open = new Intent(context, MainActivity.class);

@@ -52,18 +52,33 @@ Google TV に時計・年月日（曜日）・天気・雨雲レーダー・家�
 ## Google TV アプリ（`tv-app/`）
 
 `tv.php` を全画面で出し続けるだけの Android TV アプリ（Java、外部ライブラリなし）。画面は消さない（スクリーンセーバーにならない）、つながらなければ 30 秒ごとにやり直す。
-リモコンの決定ボタン＝読み直し、戻るボタン 2 回＝終了。
+リモコンの決定ボタン＝読み直し、決定ボタン長押し＝新しい版を確かめる、戻るボタン 2 回＝終了。
 
-- 組み立て: Android Studio で `tv-app` を開く、または `cd tv-app; .\gradlew.bat assembleDebug`（できるのは `app/build/outputs/apk/debug/app-debug.apk`）
-- Chromecast with Google TV に入れる:
-  1. 設定 → システム → デバイス情報 →「Android TV OS ビルド」を 7 回押す（開発者向けオプションが出る）
-  2. Google Play で「Downloader」（AFTVnews）を入れる
-  3. 設定 → アプリ → セキュリティと制限 → 提供元不明のアプリ で Downloader を ON
-  4. Downloader で APK の URL（例: `https://aitakt.gardenas.net/family/familytv.apk`）を開いてインストール
-  5. アプリ一覧から「家族カレンダー」を開き、ホーム画面のお気に入りに追加する
-- 電源を入れたときに自動で開く（任意）: パソコンから `adb connect テレビのIP:5555` のあと
-  `adb shell appops set net.gardenas.aitakt.familytv SYSTEM_ALERT_WINDOW allow`
-- 作り直した APK が「インストールできません」となったら、署名が違うので一度アンインストールしてから入れる（つなぎ直しが必要）
+画面の見た目や中身の変更は `family/` を送るだけでよい（アプリの入れ直しはいらない）。アプリ自体を変えたときだけ下の「更新」をする。
+
+### 署名の鍵（なくさないこと）
+
+- `tv-app/familytv-release.p12` と `tv-app/keystore.properties`（パスワード入り）。どちらもコミットしない
+- 同じ鍵で作った版でないと上書き更新できない。なくしたらアンインストールして入れ直す（テレビのつなぎ直しも必要）ので、別の場所にも控えておく
+
+### 初めて入れる（Chromecast with Google TV）
+
+1. 設定 → システム → デバイス情報 →「Android TV OS ビルド」を 7 回押す（開発者向けオプションが出る）
+2. Google Play で「Downloader」（AFTVnews）を入れる
+3. Downloader で `https://aitakt.gardenas.net/family/familytv.apk` を開いてインストール（許可を聞かれたら「設定」から Downloader を ON）
+4. アプリ一覧から「家族カレンダー」を開き、ホーム画面のお気に入りに追加する
+
+### 更新（2 回目から）
+
+1. `tv-app/app/build.gradle` の `versionCode` を 1 つ上げ、`versionName` も変える
+2. `cd tv-app; .\gradlew.bat publishApk`（`family/familytv.apk` と `family/familytv.json` ができる）
+3. `.\deploy.ps1 -Files "family/familytv.apk","family/familytv.json"`
+4. テレビに「新しい版があります」と出る（起動時と 6 時間ごとに確かめる。すぐなら決定ボタンを長押し）→「更新する」
+   - 初回だけ「家族カレンダーからのインストール」を許可する画面が出るので ON にして戻る
+
+### 電源を入れたときに自動で開く（任意）
+
+パソコンから `adb connect テレビのIP:5555` のあと `adb shell appops set net.gardenas.aitakt.familytv SYSTEM_ALERT_WINDOW allow`
 
 ## これから
 

@@ -223,8 +223,11 @@
   }
   $('newsRun').addEventListener('animationiteration', showNews);
 
-  // ── 雨雲レーダー（過去 1 時間〜1 時間先を 10 分ごとに、コマ送りで繰り返す）──
-  const JMA = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/';
+  // ── 雨雲レーダー（過去 1 時間〜1 時間先は 10 分ごと、その先 3 時間先までは 1 時間ごと。コマ送りで繰り返す）──
+  const JMA = 'https://www.jma.go.jp/bosai/jmatile/data/';
+  const tileUrl = (f) => f.kind === 'rasrf'
+    ? `${JMA}rasrf/${f.base}/immed/${f.valid}/surf/rasrf/{z}/{x}/{y}.png`   // 降水短時間予報（今後の雨）
+    : `${JMA}nowc/${f.base}/none/${f.valid}/surf/hrpns/{z}/{x}/{y}.png`;   // 降水ナウキャスト
   let map = null;
   let radarLayers = [];
   let radarFrames = [];
@@ -247,14 +250,14 @@
     try { r = await get('radar'); } catch (err) { return; }
     if (!r.frames || !r.frames.length) return;
     if (!map) initMap(r);
-    const key = (f) => `${f.base}/${f.valid}`;
+    const key = (f) => `${f.kind}/${f.base}/${f.valid}`;
     if (r.frames.map(key).join() === radarFrames.map(key).join()) return;
     radarLayers.forEach((l) => map.removeLayer(l));
     radarFrames = r.frames;
     // 全部のコマを先に読み込んでおき、見せるコマだけ不透明にする
-    radarLayers = radarFrames.map((f) => L.tileLayer(`${JMA}${f.base}/none/${f.valid}/surf/hrpns/{z}/{x}/{y}.png`,
+    radarLayers = radarFrames.map((f) => L.tileLayer(tileUrl(f),
       { pane: 'radar', opacity: 0, maxNativeZoom: 10, maxZoom: 18 }).addTo(map));
-    $('radarBar').innerHTML = radarFrames.map((f) => `<i class="${f.forecast ? 'fc' : ''}"></i>`).join('');
+    $('radarBar').innerHTML = radarFrames.map((f) => `<i class="${f.forecast ? 'fc' : ''} ${f.kind === 'rasrf' ? 'sr' : ''}"></i>`).join('');
     radarIdx = radarFrames.findIndex((f) => f.forecast) - 1;
     if (radarIdx < 0) radarIdx = radarFrames.length - 1;
     showRadar();
@@ -267,7 +270,9 @@
     const f = radarFrames[radarIdx];
     const d = new Date(f.time * 1000);
     const hm = `${d.getHours()}:${pad(d.getMinutes())}`;
-    $('radarTime').innerHTML = f.forecast ? `雨雲 <span class="fc">${hm} 予想</span>` : `雨雲 ${hm}`;
+    const ahead = Math.round((f.time * 1000 - Date.now()) / 60e3);
+    const rel = ahead >= 90 ? `（約${Math.round(ahead / 60)}時間後）` : ahead >= 15 ? `（${ahead}分後）` : '';
+    $('radarTime').innerHTML = f.forecast ? `雨雲 <span class="fc">${hm} 予想${rel}</span>` : `雨雲 ${hm}`;
   }
 
   // 1 コマ 0.7 秒、最新の実況と最後のコマでは少し止める
@@ -278,7 +283,10 @@
     radarIdx = (radarIdx + 1) % radarFrames.length;
     const f = radarFrames[radarIdx];
     const next = radarFrames[radarIdx + 1];
-    if (radarIdx === radarFrames.length - 1 || (!f.forecast && next && next.forecast)) radarWait = 4;
+    // 最新の実況と最後のコマで少し止め、1 時間ごとの予想は 1 コマを長めに見せる
+    if (radarIdx === radarFrames.length - 1) radarWait = 5;
+    else if (!f.forecast && next && next.forecast) radarWait = 4;
+    else if (f.kind === 'rasrf') radarWait = 2;
     showRadar();
   }
 

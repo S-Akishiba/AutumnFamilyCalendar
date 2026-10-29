@@ -84,6 +84,7 @@ body.night::after { opacity: .35; }
 .radarBar { position: absolute; left: 1vw; right: 9vw; bottom: 1vh; z-index: 500; display: flex; gap: .25vw; }
 .radarBar i { flex: 1; height: .6vh; border-radius: .3vh; background: rgba(0, 0, 0, .15); }
 .radarBar i.fc { background: rgba(0, 0, 0, .08); }
+.radarBar i.sr { flex: 2.5; }  /* 1 時間ごとの予想は幅を広く */
 .radarBar i.on { background: var(--text); }
 .radarBar i.fc.on { background: var(--accent); }
 .credit {

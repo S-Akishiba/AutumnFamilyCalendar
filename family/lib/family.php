@@ -547,12 +547,16 @@ function fam_weather_parse(array $data): ?array
     ];
 }
 
-// ── 雨雲レーダー（気象庁の降水ナウキャストの時刻一覧を 2 分キャッシュ）──
+// ── 雨雲レーダー（気象庁。時刻一覧を 2 分キャッシュ）──
+// 過去 1 時間（10 分ごと）＝降水ナウキャストの実況、1 時間先まで（10 分ごと）＝降水ナウキャストの予報、
+// 3 時間先まで（1 時間ごと）＝降水短時間予報（「今後の雨」）。画像は画面が気象庁から直接読む
 
-/** 過去 1 時間と 1 時間先までの 10 分ごとのコマ（時刻は UTC の YmdHis。画像は画面が気象庁から直接読む） */
+const FAM_RADAR_AHEAD = 3 * 3600;
+
+/** コマの一覧（kind: nowc / rasrf、base・valid は UTC の YmdHis、time は UNIX 時刻、forecast は予報か） */
 function fam_radar_frames(): array
 {
-    $cacheFile = sys_get_temp_dir() . '/fam_radar_times.json';
+    $cacheFile = sys_get_temp_dir() . '/fam_radar_times2.json';
     if (is_file($cacheFile) && filemtime($cacheFile) > time() - 120) {
         $cached = json_decode((string)file_get_contents($cacheFile), true);
         if (is_array($cached)) {
@@ -560,28 +564,53 @@ function fam_radar_frames(): array
         }
     }
     $ctx = stream_context_create(['http' => ['timeout' => 5, 'header' => "User-Agent: family-calendar\r\n"]]);
-    $base = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/';
-    $past = json_decode((string)@file_get_contents($base . 'targetTimes_N1.json', false, $ctx), true);
-    $fc = json_decode((string)@file_get_contents($base . 'targetTimes_N2.json', false, $ctx), true);
+    $get = fn(string $path) => json_decode((string)@file_get_contents('https://www.jma.go.jp/bosai/jmatile/data/' . $path, false, $ctx), true);
+    $past = $get('nowc/targetTimes_N1.json');
     if (!is_array($past) || !$past) {
         return is_file($cacheFile) ? (array)json_decode((string)file_get_contents($cacheFile), true) : [];
     }
+    $ts = fn(string $ymdhis) => (int)strtotime($ymdhis . ' UTC');
     $frames = [];
-    $latest = $past[0]['basetime'];
-    $latestTs = strtotime($latest . ' UTC');
+    $latestTs = max(array_map(fn($t) => $ts($t['validtime']), $past));
     foreach ($past as $t) {
-        $ts = strtotime($t['validtime'] . ' UTC');
-        if ($ts >= $latestTs - 3600 && intdiv($latestTs - $ts, 60) % 10 === 0) {
-            $frames[] = ['base' => $t['basetime'], 'valid' => $t['validtime'], 'time' => $ts, 'forecast' => false];
+        $v = $ts($t['validtime']);
+        if ($v >= $latestTs - 3600 && intdiv($latestTs - $v, 60) % 10 === 0) {
+            $frames[$v] = ['kind' => 'nowc', 'base' => $t['basetime'], 'valid' => $t['validtime'], 'time' => $v, 'forecast' => false];
         }
     }
-    foreach ((array)$fc as $t) {
-        $ts = strtotime($t['validtime'] . ' UTC');
-        if (($t['basetime'] ?? '') === $latest && $ts > $latestTs && intdiv($ts - $latestTs, 60) % 10 === 0) {
-            $frames[] = ['base' => $t['basetime'], 'valid' => $t['validtime'], 'time' => $ts, 'forecast' => true];
+    // ナウキャストの予報：予報そのものの発表時刻（実況より少し遅れることがある）で、いちばん新しいもの
+    $fc = (array)$get('nowc/targetTimes_N2.json');
+    $fcBase = $fc ? max(array_column($fc, 'basetime')) : '';
+    foreach ($fc as $t) {
+        $v = $ts($t['validtime']);
+        if ($t['basetime'] === $fcBase && $v > $latestTs && intdiv($v - $latestTs, 60) % 10 === 0) {
+            $frames[$v] = ['kind' => 'nowc', 'base' => $t['basetime'], 'valid' => $t['validtime'], 'time' => $v, 'forecast' => true];
         }
     }
-    usort($frames, fn($a, $b) => $a['time'] <=> $b['time']);
+    // 降水短時間予報：1 時間ごとの予報が出そろっている、いちばん新しい発表
+    $sr = (array)$get('rasrf/targetTimes.json');
+    $byBase = [];
+    foreach ($sr as $t) {
+        if (($t['member'] ?? '') === 'immed') {
+            $byBase[$t['basetime']][] = $t['validtime'];
+        }
+    }
+    krsort($byBase);
+    foreach ($byBase as $base => $valids) {
+        if (count($valids) < 4) {
+            continue; // まだ作っている途中の発表
+        }
+        $nowcEnd = $frames ? max(array_keys($frames)) : $latestTs;
+        foreach ($valids as $valid) {
+            $v = $ts($valid);
+            if ($v > $nowcEnd + 5 * 60 && $v <= $latestTs + FAM_RADAR_AHEAD + 10 * 60) {
+                $frames[$v] = ['kind' => 'rasrf', 'base' => $base, 'valid' => $valid, 'time' => $v, 'forecast' => true];
+            }
+        }
+        break;
+    }
+    ksort($frames);
+    $frames = array_values($frames);
     @file_put_contents($cacheFile, json_encode($frames));
     return $frames;
 }

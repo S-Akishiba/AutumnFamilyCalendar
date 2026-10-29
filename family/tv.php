@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// 家族カレンダー：テレビ表示（時計・年月日と曜日・天気・今日/明日の予定・雨雲レーダー・2 週間のカレンダー）
+// 家族カレンダー：テレビ表示（年月日と曜日・大きな時計・天気・雨雲レーダー・14 日分の予定）
 // テレビでは tv.php?key=（config.local.php の FAMILY_TV_KEY）を開く。
 // 鍵なしで開くと 6 桁の番号を出し、iPhone の ⚙ でその番号を入れるとつながる（鍵はテレビのブラウザに保存）
 
@@ -19,12 +19,12 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>家族カレンダー</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #0d1117; color: #f0f3f6; font-family: "Noto Sans JP", sans-serif; cursor: none; }
+  html, body { margin: 0; height: 100%; background: #f6f1e8; color: #3a3128; font-family: "Noto Sans JP", sans-serif; cursor: none; }
   main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 3vh; }
   h1 { font-size: 3.4vw; margin: 0; }
-  p { font-size: 2vw; color: #8b949e; margin: 0; line-height: 1.6; }
-  #code { font-size: 11vw; font-weight: 700; letter-spacing: .15em; color: #f2cc60; font-variant-numeric: tabular-nums; min-height: 1.2em; }
-  #msg { color: #ff7b72; min-height: 1.2em; }
+  p { font-size: 2vw; color: #8f8170; margin: 0; line-height: 1.6; }
+  #code { font-size: 11vw; font-weight: 700; letter-spacing: .15em; color: #c0703a; font-variant-numeric: tabular-nums; min-height: 1.2em; }
+  #msg { color: #c8483b; min-height: 1.2em; }
 </style>
 </head>
 <body>
@@ -93,27 +93,31 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
 <script>if (location.protocol === 'http:' && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') location.replace('https:' + location.href.slice(5));</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>家族カレンダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@300;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="tv.css?v=2">
+<link rel="stylesheet" href="tv.css?v=3">
 </head>
 <body>
 <div id="stage">
   <section class="left">
-    <div class="date"><span id="ymd"></span> <span id="wday"></span></div>
+    <div class="date"><span id="ymd"></span> <span class="wd" id="wday"></span></div>
     <div class="holiday" id="holiday"></div>
     <div class="clock"><span id="hm"></span><span class="sec" id="sec"></span></div>
     <div class="weather" id="weather"></div>
+    <div class="radar">
+      <div id="map"></div>
+      <div class="radarLabel" id="radarTime"></div>
+      <div class="radarBar" id="radarBar"></div>
+      <div class="credit">気象庁・国土地理院</div>
+    </div>
   </section>
-  <section class="right">
-    <div class="block"><h2>今日の予定</h2><div id="today" class="evlist"></div></div>
-    <div class="block"><h2 id="tomorrowTitle">明日の予定</h2><div id="tomorrow" class="evlist"></div></div>
+  <section class="agenda">
+    <div class="day big" id="day0"></div>
+    <div class="day big" id="day1"></div>
+    <div class="later" id="later"></div>
   </section>
-  <section class="radar">
-    <div id="map"></div>
-    <div class="radarLabel"><span id="radarTime"></span><span class="credit">気象庁・国土地理院</span></div>
-    <div class="radarBar" id="radarBar"></div>
-  </section>
-  <section class="weeks" id="weeks"></section>
   <div class="status" id="status"></div>
 </div>
 <script>
@@ -122,6 +126,6 @@ window.FAM_KEY = <?= json_encode($key) ?>;
 try { if (window.FAM_KEY) localStorage.setItem('fam_tv_key', window.FAM_KEY); } catch (e) { /* 保存できない環境 */ }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="tv.js?v=2"></script>
+<script src="tv.js?v=3"></script>
 </body>
 </html>

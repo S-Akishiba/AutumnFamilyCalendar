@@ -16,7 +16,7 @@
 
 - `family/` — サーバーに置く PHP 一式（PHP 8 / PDO / MySQL。手元では SQLite でも動く）
   - `index.php` + `app.js` / `app.css` — iPhone 画面（登録フォーム・月表示・メンバー設定）
-  - `tv.php` + `tv.js` / `tv.css` — テレビ表示（16:9、vw/vh で大きさを決める）
+  - `tv.php` + `tv.js` / `tv.css` — テレビ表示（16:9、vw/vh で大きさを決める）。左＝日付・大きな時計・天気・雨雲、右＝14 日分の予定（今日・明日は大きく、その先 12 日は 2 列）。色は時間帯で切り替え（朝 5〜10 時 sky・昼 10〜17 時 white・夕方〜夜 warm、23〜5 時は暗く。`?theme=warm` などで固定）
   - `api.php` — 読む＝ログインかテレビの鍵、書く＝ログインのみ
   - `ics.php` — iPhone のカレンダー購読用（見るだけ）
   - `lib/family.php` — DB（`fam_members` / `fam_events`、初回に自動作成）・ログイン・繰り返しの展開・祝日計算・天気・雨雲レーダー

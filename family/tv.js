@@ -52,9 +52,24 @@
   }
 
   // ── 時計 ──
+  // 左の欄に収まる大きさにする（文字の形はテレビによって違うので、実際に測って縮める）
+  const CLOCK_MAX_VW = 15.5;
+  function fitClock() {
+    const el = document.querySelector('.clock');
+    let vw = CLOCK_MAX_VW;
+    el.style.fontSize = `${vw}vw`;
+    // 時計の箱は左の欄いっぱいの幅。中身（数字）がその幅を超えたら縮める
+    while (vw > 6 && el.scrollWidth > el.clientWidth + 1) {
+      vw -= 0.25;
+      el.style.fontSize = `${vw}vw`;
+    }
+  }
+  let lastHm = '';
   function tick() {
     const now = new Date();
-    $('hm').textContent = `${now.getHours()}:${pad(now.getMinutes())}`;
+    const hm = `${now.getHours()}:${pad(now.getMinutes())}`;
+    $('hm').textContent = hm;
+    if (hm.length !== lastHm.length) { lastHm = hm; fitClock(); } // 桁が変わったら測り直す
     $('sec').textContent = pad(now.getSeconds());
     const day = ymd(now);
     if (day !== lastDay) {
@@ -70,7 +85,7 @@
     const h = now.getHours();
     const theme = fixedTheme || themeFor(h);
     if (document.documentElement.dataset.theme !== theme) document.documentElement.dataset.theme = theme;
-    $('stage').classList.toggle('night', !fixedTheme && (h >= 23 || h < 5));
+    document.body.classList.toggle('night', !fixedTheme && (h >= 23 || h < 5));
     // 焼き付き防止：5 分ごとに少しずらす
     if (now.getSeconds() === 0 && now.getMinutes() % 5 === 0) {
       const x = Math.round((Math.random() - 0.5) * 12);
@@ -231,6 +246,11 @@
 
   tick();
   setInterval(tick, 1000);
+  // 文字の読み込みや画面の大きさが変わったら、時計と地図を合わせ直す
+  const refit = () => { fitClock(); if (map) map.invalidateSize(); };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+  window.addEventListener('resize', refit);
+  setTimeout(refit, 3000);
   loadRadar();
   setInterval(loadRadar, 5 * 60e3);
   setInterval(stepRadar, 700);

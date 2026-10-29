@@ -1,6 +1,6 @@
 /* テレビ表示。16:9 の画面いっぱいに出すので、大きさは vw / vh で決める。
    色は時間帯で切り替える（tv.js が html の data-theme を変える）:
-   朝 5〜10 時＝sky（空色）、昼 10〜17 時＝white（白）、夕方〜夜 17〜5 時＝warm（生成り。いちばん見る時間）。23〜5 時は暗くする */
+   朝 5〜10 時＝sky（空色）、昼 10〜17 時＝white（白）、夕方〜夜 17〜5 時＝warm（生成り。いちばん見る時間）。23〜5 時は全体を暗くする */
 :root, :root[data-theme="warm"] {
   --bg: #f6f1e8; --panel: #fffdf8; --line: #e8dfcf; --text: #3a3128; --muted: #8f8170;
   --accent: #c0703a; --today: #fbeedd; --sun: #c8483b; --sat: #3f78b5; --shadow: 0 .3vw 1.2vw rgba(90, 60, 20, .08);
@@ -21,19 +21,22 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; }
 body { background: var(--bg); color: var(--text); font-family: "Noto Sans JP", "Hiragino Sans", "Roboto", sans-serif; }
 #stage {
   position: absolute; inset: 2.6vh 2vw; display: grid; grid-template-columns: 43fr 57fr; gap: 2vw;
-  transition: transform 2s, filter 3s;
+  transition: transform 2s;
 }
-#stage.night { filter: brightness(.5); }
+/* 夜は画面全体を同じだけ暗くする（中の枠だけ暗くすると灰色の箱に見える） */
+body::after { content: ""; position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 3s; z-index: 1000; }
+body.night::after { opacity: .35; }
 
 /* ── 左：日付・大きな時計・天気・雨雲 ── */
-.left { display: grid; grid-template-rows: auto auto auto auto 1fr; min-height: 0; min-width: 0; }
+.left { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto 1fr; min-height: 0; min-width: 0; overflow: hidden; }
 .date { font-size: 2.6vw; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
 .date .wd { color: var(--accent); }
 .date .wd.sun { color: var(--sun); }
 .date .wd.sat { color: var(--sat); }
 .holiday { font-size: 1.4vw; color: var(--sun); font-weight: 700; min-height: 1.4em; }
 .clock {
-  font-family: "Outfit", "Noto Sans JP", sans-serif; font-weight: 500; font-size: 15.5vw; line-height: .9;
+  /* 大きさは tv.js が左の欄に収まるように決める（文字が読み込めず太い文字になってもはみ出さない） */
+  font-family: "Outfit", "Roboto", "Noto Sans JP", sans-serif; font-weight: 500; font-size: 15.5vw; line-height: .9;
   color: var(--clock); letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin: .4vh 0 1vh -.6vw; white-space: nowrap;
 }
 .clock .sec { font-size: 4.2vw; color: var(--sec); font-weight: 300; letter-spacing: 0; margin-left: .5vw; }
@@ -79,7 +82,7 @@ body { background: var(--bg); color: var(--text); font-family: "Noto Sans JP", "
 }
 .day .d { display: flex; flex-direction: column; justify-content: center; align-items: center; border-right: .12vw solid var(--line); line-height: 1.05; }
 .day .d .rel { font-size: 1vw; color: var(--muted); font-weight: 700; }
-.day .d .n { font-family: "Outfit", sans-serif; font-size: 2.5vw; font-weight: 600; }
+.day .d .n { font-family: "Outfit", "Roboto", sans-serif; font-size: 2.5vw; font-weight: 600; }
 .day .d .w { font-size: 1vw; font-weight: 700; }
 .day.sun .d .n, .day.sun .d .w, .day.hol .d .n, .day.hol .d .w { color: var(--sun); }
 .day.sat .d .n, .day.sat .d .w { color: var(--sat); }
@@ -88,7 +91,7 @@ body { background: var(--bg); color: var(--text); font-family: "Noto Sans JP", "
 .day .evs { display: flex; flex-direction: column; justify-content: center; gap: .45vh; padding: .6vh 1.1vw; min-width: 0; overflow: hidden; }
 .day .hn { font-size: 1vw; color: var(--sun); font-weight: 700; }
 .ev { display: flex; align-items: center; gap: .8vw; font-size: 1.6vw; min-width: 0; line-height: 1.3; }
-.ev .t { flex: none; width: 9.2vw; white-space: nowrap; color: var(--muted); font-family: "Outfit", "Noto Sans JP", sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; }
+.ev .t { flex: none; width: 9.2vw; white-space: nowrap; color: var(--muted); font-family: "Outfit", "Roboto", "Noto Sans JP", sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; }
 .ev .t small { font-size: .7em; margin-left: .15em; }
 .ev .ti { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .ev .who { display: flex; gap: .3vw; flex: none; }

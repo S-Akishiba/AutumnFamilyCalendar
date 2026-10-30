@@ -103,7 +103,7 @@ LINE 公式アカウント（ボット）を家族が友だち追加し、トー
    - チャネルを「**公開済み**」にする（開発中のままだと作った人しか使えない）
 6. `family/config.local.php` に 4 つの値を書いて送る。Messaging API 設定の Webhook URL の「検証」で「成功」と出れば OK
 7. **リッチメニュー**（トークの下のボタン）: Official Account Manager → リッチメニュー → 作成
-   - テンプレート＝大きいサイズの横 3 分割、画像＝`tools/line_richmenu.png`
+   - テンプレート＝「小」の横 3 分割（2500×843）、画像＝`tools/line_richmenu.png`
    - A＝リンク `https://liff.line.me/（LIFF ID）`、B＝テキスト「今日」、C＝テキスト「今週」、表示期間を長く、メニューの初期状態＝表示
 8. 家族に公式アカウントの QR コード（Official Account Manager → ホーム → 友だちを増やす）で友だち追加してもらう
 

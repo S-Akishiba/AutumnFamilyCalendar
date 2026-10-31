@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 
-// 家族カレンダー：テレビ表示（年月日と曜日・大きな時計・天気・雨雲レーダー・14 日分の予定）
+// 家族カレンダー：テレビ表示（年月日と曜日・大きな時計・天気・雨雲レーダー・14 日分の予定）。
+// リモコンの ← で 3 か月のカレンダー、→ で年間行事予定（しばらく触らなければ真ん中に戻る）
 // テレビでは tv.php?key=（config.local.php の FAMILY_TV_KEY）を開く。
 // 鍵なしで開くと 6 桁の番号を出し、iPhone の ⚙ でその番号を入れるとつながる（鍵はテレビのブラウザに保存）
 
@@ -97,7 +98,7 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@300;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="tv.css?v=6">
+<link rel="stylesheet" href="tv.css?v=8">
 </head>
 <body>
 <div id="stage">
@@ -105,6 +106,11 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
     <span class="credit-top"><?= h(FAMILY_CREDIT) ?></span>
     <div class="ticker" id="ticker"><span class="src" id="newsSrc"></span><div class="track"><div class="run" id="newsRun"></div></div></div>
   </header>
+  <div class="views" id="views">
+  <!-- 左の画面：今月から 3 か月分のカレンダー（リモコンの ←） -->
+  <section class="view months" id="viewMonths"></section>
+  <!-- 真ん中の画面：時計・天気・雨雲・14 日分の予定 -->
+  <section class="view main" id="viewMain">
   <section class="left">
     <div class="date"><span id="ymd"></span> <span class="wd" id="wday"></span></div>
     <div class="holiday" id="holiday"></div>
@@ -122,6 +128,11 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
     <div class="day big" id="day1"></div>
     <div class="later" id="later"></div>
   </section>
+  </section>
+  <!-- 右の画面：年間行事予定（リモコンの →） -->
+  <section class="view year" id="viewYear"></section>
+  </div>
+  <nav class="pager" id="pager"><span data-i="0">◀ 3か月</span><span data-i="1">今日</span><span data-i="2">年間行事 ▶</span></nav>
   <div class="status" id="status"></div>
 </div>
 <script>
@@ -130,6 +141,6 @@ window.FAM_KEY = <?= json_encode($key) ?>;
 try { if (window.FAM_KEY) localStorage.setItem('fam_tv_key', window.FAM_KEY); } catch (e) { /* 保存できない環境 */ }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="tv.js?v=6"></script>
+<script src="tv.js?v=8"></script>
 </body>
 </html>

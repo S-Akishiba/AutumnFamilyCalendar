@@ -91,6 +91,7 @@ $loggedIn = $configured && fam_logged_in();
         </label>
         <label class="until">いつまで<input type="date" name="repeat_until"></label>
       </div>
+      <label class="check"><input type="checkbox" name="annual"> 年間行事予定にのせる（テレビの右の画面に出ます）</label>
       <label>メモ<textarea name="note" rows="2" maxlength="2000"></textarea></label>
       <p class="hint" id="repeatHint" hidden>繰り返しの予定は、変更・削除するとすべての回に反映されます。</p>
       <p class="err" id="formErr"></p>
@@ -126,7 +127,7 @@ $loggedIn = $configured && fam_logged_in();
   </dialog>
 
   <script>window.FAM_COLORS = <?= json_encode(FAM_COLORS) ?>;</script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 <?php endif; ?>
 </body>
 </html>

@@ -32,9 +32,11 @@
     return 'warm';
   }
 
+  // 今月のはじめから 12 か月分（真ん中の 14 日・左の 3 か月・右の年間行事を 1 回で読む）
   async function loadCalendar() {
-    const s = startOfToday();
-    const e = addDays(s, DAYS - 1);
+    const t = startOfToday();
+    const s = new Date(t.getFullYear(), t.getMonth(), 1);
+    const e = new Date(t.getFullYear(), t.getMonth() + 12, 0);
     try {
       data = await get('calendar', `&from=${ymd(s)}&to=${ymd(e)}`);
       $('status').textContent = '';
@@ -110,6 +112,11 @@
     const ms = membersOf(ev);
     return (ms.length ? ms.map((m) => m.color) : ['var(--all)']).map((c) => `<i style="background:${esc(c)}"></i>`).join('');
   }
+  // 1 人の予定はその人の色、ほかは「家族」の色
+  const colorOf = (ev) => {
+    const ms = membersOf(ev);
+    return ms.length === 1 ? ms[0].color : 'var(--all)';
+  };
   const eventsOn = (day) => data.events.filter((ev) => ev.date <= day && ev.end_date >= day);
 
   function timeLabel(ev, day, short) {
@@ -161,7 +168,100 @@
     let html = '';
     for (let i = 2; i < DAYS; i++) html += smallDay(addDays(s, i));
     $('later').innerHTML = html;
+    renderMonths();
+    renderYear();
   }
+
+  // ── 左の画面：今月から 3 か月分のカレンダー ──
+  function renderMonths() {
+    const today = ymd(new Date());
+    const t = startOfToday();
+    let html = '';
+    for (let k = 0; k < 3; k++) {
+      const first = new Date(t.getFullYear(), t.getMonth() + k, 1);
+      const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+      const weeks = Math.ceil((first.getDay() + days) / 7);
+      let cells = '';
+      for (let i = 0; i < weeks * 7; i++) {
+        const d = new Date(first.getFullYear(), first.getMonth(), 1 - first.getDay() + i);
+        const key = ymd(d);
+        const cls = ['c'];
+        if (d.getMonth() !== first.getMonth()) { cells += '<div class="c out"></div>'; continue; }
+        if (d.getDay() === 0) cls.push('sun');
+        if (d.getDay() === 6) cls.push('sat');
+        if (data.holidays[key]) cls.push('hol');
+        if (key === today) cls.push('today');
+        if (key < today) cls.push('past');
+        const evs = eventsOn(key);
+        const max = data.holidays[key] ? 3 : 4;
+        const items = evs.slice(0, max).map((ev) => `<div class="e" style="border-color:${esc(colorOf(ev))}">${esc(ev.title)}</div>`).join('');
+        const more = evs.length > max ? `<div class="more">ほか${evs.length - max}件</div>` : '';
+        cells += `<div class="${cls.join(' ')}"><div class="n">${d.getDate()}</div>${data.holidays[key] ? `<div class="hn">${esc(data.holidays[key])}</div>` : ''}${items}${more}</div>`;
+      }
+      html += `<div class="mcal"><h2>${first.getMonth() + 1}月<small>${first.getFullYear()}年</small></h2>
+        <div class="wds">${WD.map((w) => `<span>${w}</span>`).join('')}</div>
+        <div class="cells" style="grid-template-rows:repeat(${weeks},minmax(0,1fr))">${cells}</div></div>`;
+    }
+    $('viewMonths').innerHTML = html;
+  }
+
+  // ── 右の画面：年間行事予定（今月から 12 か月。「年間行事予定にのせる」にした予定と祝日）──
+  const YEAR_ROWS = 7;
+  function renderYear() {
+    const today = ymd(new Date());
+    const t = startOfToday();
+    const annual = data.events.filter((ev) => ev.annual);
+    let html = '';
+    for (let k = 0; k < 12; k++) {
+      const first = new Date(t.getFullYear(), t.getMonth() + k, 1);
+      const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+      const from = ymd(first);
+      const to = ymd(last);
+      let rows = [];
+      for (const ev of annual) {
+        if (ev.date > to || ev.end_date < from) continue;
+        const d = new Date(`${(ev.date < from ? from : ev.date)}T00:00:00`);
+        const end = ev.end_date !== ev.date ? `〜${Number(ev.end_date.slice(8))}` : '';
+        rows.push({ key: ev.date < from ? from : ev.date, hol: false, past: ev.end_date < today,
+          d: `${d.getDate()}(${WD[d.getDay()]})${end}`, t: ev.title, ev });
+      }
+      for (const [key, name] of Object.entries(data.holidays)) {
+        if (key < from || key > to) continue;
+        const d = new Date(`${key}T00:00:00`);
+        rows.push({ key, hol: true, past: key < today, d: `${d.getDate()}(${WD[d.getDay()]})`, t: name });
+      }
+      rows.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.hol - b.hol));
+      // 入りきらないときは祝日から減らす
+      while (rows.length > YEAR_ROWS && rows.some((r) => r.hol)) {
+        const i = rows.map((r) => r.hol).lastIndexOf(true);
+        rows.splice(i, 1);
+      }
+      const shown = rows.slice(0, YEAR_ROWS);
+      const body = shown.map((r) => `<div class="r ${r.hol ? 'hol' : ''} ${r.past ? 'past' : ''}"><span class="d">${r.d}</span>
+        <span class="t">${esc(r.t)}</span>${r.ev ? `<span class="w">${whoDots(r.ev)}</span>` : ''}</div>`).join('');
+      const more = rows.length > YEAR_ROWS ? `<div class="more">ほか ${rows.length - YEAR_ROWS} 件</div>` : '';
+      html += `<div class="ybox ${k === 0 ? 'now' : ''}"><h3>${first.getMonth() + 1}月${first.getMonth() === 0 || k === 0 ? `<small>${first.getFullYear()}年</small>` : ''}</h3>
+        ${body || '<div class="none">—</div>'}${more}</div>`;
+    }
+    $('viewYear').innerHTML = html;
+  }
+
+  // ── リモコンの ← → で画面を切り替える（2 分さわらなければ真ん中に戻る）──
+  const PAGES = ['months', 'main', 'year'];
+  let page = Math.max(0, PAGES.indexOf(new URLSearchParams(location.search).get('view') || 'main'));
+  let backTimer = null;
+  function setPage(i) {
+    page = Math.max(0, Math.min(PAGES.length - 1, i));
+    $('views').style.setProperty('--cur', page);
+    [...$('pager').children].forEach((el, j) => el.classList.toggle('on', j === page));
+    clearTimeout(backTimer);
+    if (page !== 1 && !new URLSearchParams(location.search).get('view')) backTimer = setTimeout(() => setPage(1), 120e3);
+    if (page === 1 && map) setTimeout(() => map.invalidateSize(), 650);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { setPage(page - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { setPage(page + 1); e.preventDefault(); }
+  });
 
   // ── 天気（気象庁の天気コード：1xx 晴・2xx 曇・3xx 雨・4xx 雪）──
   function icon(code) {
@@ -290,6 +390,7 @@
     showRadar();
   }
 
+  setPage(page);
   tick();
   setInterval(tick, 1000);
   // 文字の読み込みや画面の大きさが変わったら、時計と地図を合わせ直す

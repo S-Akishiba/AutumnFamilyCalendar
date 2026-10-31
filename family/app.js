@@ -98,7 +98,7 @@
       list += `<h3 class="${day === today ? 'today' : ''}">${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）${hol}</h3>`;
       list += evs.map((ev) => `<div class="ev" data-id="${ev.id}" data-day="${day}">
           <div class="time">${timeLabel(ev, day)}</div>
-          <div class="body"><div class="title">${esc(ev.title)}${ev.repeat_rule ? ' 🔁' : ''}</div>
+          <div class="body"><div class="title">${esc(ev.title)}${ev.repeat_rule ? ' 🔁' : ''}${ev.annual ? ' ⭐' : ''}</div>
           ${ev.note ? `<div class="note">${esc(ev.note)}</div>` : ''}</div>
           <div class="who">${whoTags(ev)}</div></div>`).join('') || '<p class="empty">予定はありません</p>';
     }
@@ -144,6 +144,7 @@
       f.repeat_rule.value = ev.repeat_rule;
       f.repeat_until.value = ev.repeat_until || '';
       f.note.value = ev.note;
+      f.annual.checked = !!ev.annual;
     } else {
       f.start_date.value = day || selected || ymd(new Date());
       f.all_day.checked = true;
@@ -175,6 +176,7 @@
       repeat_rule: f.repeat_rule.value,
       repeat_until: f.repeat_until.value,
       note: f.note.value,
+      annual: f.annual.checked,
     };
     try {
       await api('save', body);

@@ -20,7 +20,7 @@
 html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; }
 body { background: var(--bg); color: var(--text); font-family: "Noto Sans JP", "Hiragino Sans", "Roboto", sans-serif; }
 #stage {
-  position: absolute; inset: 1.6vh 2vw 2.6vh; display: grid; grid-template-columns: 43fr 57fr; grid-template-rows: auto minmax(0, 1fr);
+  position: absolute; inset: 1.6vh 2vw 2.8vh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
   gap: 1.4vh 2vw;
   transition: transform 2s;
 }
@@ -29,7 +29,7 @@ body::after { content: ""; position: fixed; inset: 0; background: #000; opacity:
 body.night::after { opacity: .35; }
 
 /* ── 上の帯：制作者の名前と、流れるニュース ── */
-.topbar { grid-column: 1 / 3; display: flex; align-items: center; gap: 1.2vw; min-width: 0; height: 4.4vh; }
+.topbar { grid-column: 1 / -1; display: flex; align-items: center; gap: 1.2vw; min-width: 0; height: 4.4vh; }
 .credit-top { flex: none; font-size: 1.05vw; font-weight: 700; color: var(--muted); letter-spacing: .05em; }
 .ticker {
   flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; background: var(--panel); border-radius: 3vh;
@@ -47,6 +47,53 @@ body.night::after { opacity: .35; }
 .ticker .run span::before { content: "◆"; color: var(--accent); margin-right: .6vw; font-size: .8em; }
 .ticker .run .t { color: var(--muted); font-size: .85em; margin-right: .5vw; font-family: "Outfit", "Roboto", sans-serif; }
 @keyframes ticker { from { transform: translateX(var(--from, 100%)); } to { transform: translateX(var(--to, -100%)); } }
+
+/* ── 3 つの画面（← 3 か月 / 真ん中 / → 年間行事）を横に並べ、--cur の画面を見せる ── */
+.views { position: relative; min-height: 0; min-width: 0; overflow: hidden; --cur: 1; }
+.view { position: absolute; inset: 0; transition: transform .6s ease, opacity .6s; transform: translateX(calc((var(--pos) - var(--cur)) * 104%)); }
+.view.months { --pos: 0; }
+.view.main { --pos: 1; display: grid; grid-template-columns: 43fr 57fr; gap: 2vw; }
+.view.year { --pos: 2; }
+.pager { position: absolute; left: 50%; bottom: -2.4vh; transform: translateX(-50%); display: flex; gap: 1.6vw; font-size: .95vw; color: var(--muted); }
+.pager span { opacity: .55; }
+.pager span.on { opacity: 1; color: var(--accent); font-weight: 700; }
+
+/* ── 左の画面：今月から 3 か月分のカレンダー ── */
+.months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4vw; }
+.mcal { display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.2vh .8vw; min-height: 0; min-width: 0; }
+.mcal h2 { margin: 0 0 .6vh .3vw; font-size: 1.8vw; font-weight: 700; }
+.mcal h2 small { font-size: .55em; color: var(--muted); margin-left: .4vw; font-weight: 500; }
+.mcal .wds, .mcal .cells { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.mcal .wds span { text-align: center; font-size: .9vw; color: var(--muted); font-weight: 700; padding-bottom: .4vh; }
+.mcal .wds span:first-child { color: var(--sun); }
+.mcal .wds span:last-child { color: var(--sat); }
+.mcal .cells { grid-auto-rows: minmax(0, 1fr); min-height: 0; border-top: .1vw solid var(--line); }
+.mcal .c { border-bottom: .1vw solid var(--line); padding: .3vh .2vw; min-height: 0; min-width: 0; overflow: hidden; }
+.mcal .c.out { visibility: hidden; }
+.mcal .c.today { background: var(--today); border-radius: .5vw; outline: .15vw solid var(--accent); outline-offset: -.15vw; }
+.mcal .c.past { opacity: .45; }
+.mcal .n { font-family: "Outfit", "Roboto", sans-serif; font-size: 1.2vw; font-weight: 600; line-height: 1.1; }
+.mcal .c.sun .n, .mcal .c.hol .n { color: var(--sun); }
+.mcal .c.sat .n { color: var(--sat); }
+.mcal .hn { font-size: .7vw; color: var(--sun); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mcal .e { font-size: .88vw; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: clip; border-left: .25vw solid var(--all); padding-left: .2vw; margin-top: .15vh; }
+.mcal .more { font-size: .72vw; color: var(--muted); }
+
+/* ── 右の画面：年間行事予定（12 か月） ── */
+.year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 1.1vh .9vw; }
+.ybox { background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: .9vh .9vw; min-height: 0; min-width: 0; overflow: hidden; }
+.ybox.now { outline: .2vw solid var(--accent); outline-offset: -.2vw; background: var(--today); }
+.ybox h3 { margin: 0 0 .5vh; font-size: 1.45vw; font-weight: 700; }
+.ybox h3 small { font-size: .65em; color: var(--muted); margin-left: .3vw; font-weight: 500; }
+.ybox .r { display: flex; gap: .5vw; font-size: 1.1vw; line-height: 1.5; min-width: 0; }
+.ybox .r .d { flex: none; width: 5.6vw; white-space: nowrap; color: var(--muted); font-family: "Outfit", "Roboto", "Noto Sans JP", sans-serif; }
+.ybox .r .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.ybox .r .w { flex: none; display: flex; gap: .2vw; align-items: center; }
+.ybox .r .w i { width: .75vw; height: .75vw; border-radius: 50%; display: block; }
+.ybox .r.hol .t { color: var(--sun); font-weight: 400; font-size: .9em; }
+.ybox .r.past { opacity: .45; }
+.ybox .none { color: var(--muted); font-size: .9vw; }
+.ybox .more { color: var(--muted); font-size: .8vw; }
 
 /* ── 左：日付・大きな時計・天気・雨雲 ── */
 .left { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto 1fr; min-height: 0; min-width: 0; overflow: hidden; }

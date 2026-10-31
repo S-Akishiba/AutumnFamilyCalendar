@@ -24,6 +24,7 @@ function fam_pdo(): PDO
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
         fam_ensure_tables($pdo);
+        fam_ensure_columns($pdo);
     }
     return $pdo;
 }
@@ -72,6 +73,17 @@ function fam_ensure_tables(PDO $pdo): void
         updated_at DATETIME NOT NULL,
         KEY idx_dates (start_date, end_date)
     ) DEFAULT CHARSET=utf8mb4');
+}
+
+/** あとから足した列を、前からあるテーブルにも足す（SQLite・MySQL 共通の書き方） */
+function fam_ensure_columns(PDO $pdo): void
+{
+    try {
+        $pdo->query('SELECT annual FROM fam_events LIMIT 1');
+    } catch (PDOException $e) {
+        // 年間行事予定にのせる予定（テレビの右の画面に出す）
+        $pdo->exec('ALTER TABLE fam_events ADD COLUMN annual INT NOT NULL DEFAULT 0');
+    }
 }
 
 // ── ログイン（家族共通のパスワード。署名入りの Cookie で 400 日保つ）──
@@ -290,6 +302,7 @@ function fam_event_clean(array $in): array
         'repeat_rule' => $repeat,
         'repeat_until' => $until,
         'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 2000),
+        'annual' => empty($in['annual']) ? 0 : 1,
     ];
 }
 
@@ -301,12 +314,12 @@ function fam_event_save(array $in, string $source = 'web'): int
     $id = (int)($in['id'] ?? 0);
     if ($id > 0) {
         $st = $pdo->prepare('UPDATE fam_events SET title = ?, member_ids = ?, start_date = ?, end_date = ?, start_time = ?,
-            end_time = ?, repeat_rule = ?, repeat_until = ?, note = ?, updated_at = ? WHERE id = ?');
+            end_time = ?, repeat_rule = ?, repeat_until = ?, note = ?, annual = ?, updated_at = ? WHERE id = ?');
         $st->execute([...array_values($e), $now, $id]);
         return $id;
     }
     $st = $pdo->prepare('INSERT INTO fam_events (title, member_ids, start_date, end_date, start_time, end_time, repeat_rule,
-        repeat_until, note, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        repeat_until, note, annual, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $st->execute([...array_values($e), $source, $now, $now]);
     return (int)$pdo->lastInsertId();
 }
@@ -394,6 +407,7 @@ function fam_event_out(array $ev, DateTimeImmutable $d, DateTimeImmutable $end):
         'base_start_date' => substr((string)$ev['start_date'], 0, 10),
         'base_end_date' => substr((string)$ev['end_date'], 0, 10),
         'note' => $ev['note'],
+        'annual' => !empty($ev['annual']),
     ];
 }
 
@@ -526,11 +540,17 @@ function fam_weather_parse(array $data): ?array
             $days[$d]['max'] = (int)$v;
         }
     }
+    // 昼の発表では、もう過ぎた今日の最低の欄に最高と同じ値が入る。そのときは最低を出さない
+    foreach ($days as $d => $day) {
+        if ($day['min'] !== null && $day['max'] !== null && $day['min'] >= $day['max']) {
+            $days[$d]['min'] = null;
+        }
+    }
     // 週間予報で足りない最高・最低を補う
     $wk = $data[1]['timeSeries'][1] ?? null;
     foreach (($wk['timeDefines'] ?? []) as $i => $t) {
         $d = substr($t, 0, 10);
-        if (!isset($days[$d])) {
+        if (!isset($days[$d]) || $d <= date('Y-m-d')) {
             continue;
         }
         foreach (['max' => 'tempsMax', 'min' => 'tempsMin'] as $k => $src) {

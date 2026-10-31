@@ -133,6 +133,21 @@
     return cls;
   }
 
+  // 「前の日にテレビで知らせる」の予定：夕方 15 時からは明日の分、朝 10 時までは今日の分を目立たせる
+  function noticeHtml() {
+    const now = new Date();
+    const h = now.getHours();
+    let label = '';
+    let day = null;
+    if (h >= 15) { label = '明日は'; day = addDays(startOfToday(), 1); }
+    else if (h < 10) { label = '今日は'; day = startOfToday(); }
+    if (!day) return '';
+    const evs = eventsOn(ymd(day)).filter((ev) => ev.remind);
+    if (!evs.length) return '';
+    const isGarbage = evs.every((ev) => /ゴミ|ごみ|資源|プラ|ペットボトル|びん|缶/.test(ev.title));
+    return `<span class="notice">${isGarbage ? '🗑️' : '🔔'} ${label} ${evs.map((ev) => esc(ev.title)).join('・')}</span>`;
+  }
+
   // 今日・明日（大きく、時刻と名札つき）
   function bigDay(el, d, rel, max) {
     const k = ymd(d);
@@ -162,7 +177,8 @@
 
   function renderEvents() {
     const s = startOfToday();
-    $('holiday').textContent = data.holidays[ymd(s)] || '';
+    const hol = data.holidays[ymd(s)];
+    $('holiday').innerHTML = (hol ? `<span>${esc(hol)}</span>` : '') + noticeHtml();
     bigDay($('day0'), s, '今日', 4);
     bigDay($('day1'), addDays(s, 1), '明日', 3);
     let html = '';
@@ -258,6 +274,8 @@
     if (page !== 1 && !new URLSearchParams(location.search).get('view')) backTimer = setTimeout(() => setPage(1), 120e3);
     if (page === 1 && map) setTimeout(() => map.invalidateSize(), 650);
   }
+  // テレビのアプリ（1.2 から）はリモコンの ← → をここに渡す
+  window.famNav = (dir) => setPage(page + dir);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') { setPage(page - 1); e.preventDefault(); }
     if (e.key === 'ArrowRight') { setPage(page + 1); e.preventDefault(); }

@@ -17,7 +17,9 @@
 - `family/` — サーバーに置く PHP 一式（PHP 8 / PDO / MySQL。手元では SQLite でも動く）
   - `index.php` + `app.js` / `app.css` — iPhone 画面（登録フォーム・月表示・メンバー設定）
   - `tv.php` + `tv.js` / `tv.css` — テレビ表示（16:9、vw/vh で大きさを決める）。上の帯＝制作者名（`FAMILY_CREDIT`）と流れるニュース（`FAMILY_NEWS_RSS`、NHK→Yahoo!、10 分キャッシュ、2 日以上止まった RSS は使わない）、左＝日付・大きな時計・天気・雨雲、右＝14 日分の予定（今日・明日は大きく、その先 12 日は 2 列）。色は時間帯で切り替え（朝 5〜10 時 sky・昼 10〜17 時 white・夕方〜夜 warm、23〜5 時は暗く。`?theme=warm` などで固定）
-  - テレビは 3 画面（`.views` の `--cur`）: リモコンの ← ＝今月から 3 か月のカレンダー、真ん中＝上の画面、→ ＝年間行事予定（今月から 12 か月。`fam_events.annual`＝「年間行事予定にのせる」の予定と祝日）。2 分さわらなければ真ん中に戻る。`?view=months|year` で固定
+  - テレビは 3 画面（`.views` の `--cur`）: リモコンの ← ＝今月から 3 か月のカレンダー、真ん中＝上の画面、→ ＝年間行事予定（今月から 12 か月。`fam_events.annual`＝「年間行事予定にのせる」の予定と祝日）。2 分さわらなければ真ん中に戻る。`?view=months|year` で固定。リモコンの ← → は WebView が使ってしまうので、アプリ（1.2〜）の `dispatchKeyEvent` が `window.famNav(±1)` に渡す
+  - 「前の日にテレビで知らせる」（`fam_events.remind`）の予定は、15 時からは「明日は …」、10 時までは「今日は …」を日付の下に帯で出す
+  - 繰り返し: 毎週（`repeat_days` の曜日、複数可）・毎月 第◯週の曜日（`nthweek`、`repeat_weeks` × `repeat_days`）・毎月（同じ日）・毎年。ICS は BYDAY で書く
   - `api.php` — 読む＝ログインかテレビの鍵、書く＝ログインのみ
   - `ics.php` — iPhone のカレンダー購読用（見るだけ）
   - `lib/family.php` — DB（`fam_members` / `fam_events`、初回に自動作成。あとから足した列は `fam_ensure_columns()` が古いテーブルにも足す）・ログイン・繰り返しの展開・祝日計算・天気・雨雲レーダー

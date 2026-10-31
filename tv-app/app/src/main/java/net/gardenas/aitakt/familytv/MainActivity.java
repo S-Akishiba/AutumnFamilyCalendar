@@ -100,6 +100,23 @@ public class MainActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
 
+    /**
+     * リモコンの ← → は WebView が画面の中の移動に使ってしまいページに届かないので、先に受け取ってページに渡す
+     * （tv.js の famNav(-1 / +1) で 3 か月のカレンダー・真ん中・年間行事予定を切り替える）
+     */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                int dir = code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
+                web.evaluateJavascript("window.famNav && window.famNav(" + dir + ")", null);
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {

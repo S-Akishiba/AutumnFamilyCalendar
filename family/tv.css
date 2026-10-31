@@ -101,7 +101,14 @@ body.night::after { opacity: .35; }
 .date .wd { color: var(--accent); }
 .date .wd.sun { color: var(--sun); }
 .date .wd.sat { color: var(--sat); }
-.holiday { font-size: 1.4vw; color: var(--sun); font-weight: 700; min-height: 1.4em; }
+.holiday { font-size: 1.4vw; color: var(--sun); font-weight: 700; min-height: 1.4em; display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; }
+/* 「明日は 燃えるゴミ」：前の日の夕方〜当日の朝に出す帯 */
+.notice {
+  display: inline-block; background: var(--accent); color: #fff; font-size: 1.7vw; font-weight: 700; letter-spacing: .03em;
+  border-radius: 3vw; padding: .5vh 1.3vw; margin: .4vh 0; box-shadow: var(--shadow); max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: notice 2.4s ease-in-out infinite;
+}
+@keyframes notice { 50% { transform: scale(1.03); } }
 .clock {
   /* 大きさは tv.js が左の欄に収まるように決める（文字が読み込めず太い文字になってもはみ出さない） */
   font-family: "Outfit", "Roboto", "Noto Sans JP", sans-serif; font-weight: 500; font-size: 15.5vw; line-height: .9;

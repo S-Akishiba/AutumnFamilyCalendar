@@ -9,7 +9,7 @@ date_default_timezone_set('Asia/Tokyo');
 
 const FAM_COOKIE = 'fam_auth';
 const FAM_COOKIE_DAYS = 400;
-const FAM_REPEATS = ['' => 'なし', 'weekly' => '毎週', 'monthly' => '毎月', 'yearly' => '毎年'];
+const FAM_REPEATS = ['' => 'なし', 'weekly' => '毎週（曜日を選ぶ）', 'nthweek' => '毎月 第◯週の曜日', 'monthly' => '毎月（同じ日）', 'yearly' => '毎年'];
 const FAM_COLORS = ['#e8505b', '#2f80ed', '#27ae60', '#f2994a', '#9b51e0', '#00a8a8', '#d4a017', '#8d6e63'];
 const FAM_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -83,6 +83,14 @@ function fam_ensure_columns(PDO $pdo): void
     } catch (PDOException $e) {
         // 年間行事予定にのせる予定（テレビの右の画面に出す）
         $pdo->exec('ALTER TABLE fam_events ADD COLUMN annual INT NOT NULL DEFAULT 0');
+    }
+    try {
+        $pdo->query('SELECT repeat_days, repeat_weeks, remind FROM fam_events LIMIT 1');
+    } catch (PDOException $e) {
+        // 繰り返しの曜日（0＝日〜6＝土、カンマ区切り）と「第◯」（1〜5）、前の日にテレビで知らせるか
+        $pdo->exec("ALTER TABLE fam_events ADD COLUMN repeat_days VARCHAR(20) NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE fam_events ADD COLUMN repeat_weeks VARCHAR(20) NOT NULL DEFAULT ''");
+        $pdo->exec('ALTER TABLE fam_events ADD COLUMN remind INT NOT NULL DEFAULT 0');
     }
 }
 
@@ -292,6 +300,16 @@ function fam_event_clean(array $in): array
     }
     $ids = array_values(array_unique(array_filter(array_map('intval', (array)$ids))));
     sort($ids);
+    // 曜日と「第◯」。選ばれていなければ、日付の曜日・その日が第何週か
+    $startDow = (int)date('w', strtotime($start));
+    $days = $repeat === 'weekly' || $repeat === 'nthweek' ? fam_int_list($in['repeat_days'] ?? [], 0, 6) : [];
+    $weeks = $repeat === 'nthweek' ? fam_int_list($in['repeat_weeks'] ?? [], 1, 5) : [];
+    if (($repeat === 'weekly' || $repeat === 'nthweek') && !$days) {
+        $days = [$startDow];
+    }
+    if ($repeat === 'nthweek' && !$weeks) {
+        $weeks = [intdiv((int)date('j', strtotime($start)) - 1, 7) + 1];
+    }
     return [
         'title' => mb_substr($title, 0, 200),
         'member_ids' => implode(',', $ids),
@@ -303,7 +321,24 @@ function fam_event_clean(array $in): array
         'repeat_until' => $until,
         'note' => mb_substr(trim((string)($in['note'] ?? '')), 0, 2000),
         'annual' => empty($in['annual']) ? 0 : 1,
+        'repeat_days' => implode(',', $days),
+        'repeat_weeks' => implode(',', $weeks),
+        'remind' => empty($in['remind']) ? 0 : 1,
     ];
+}
+
+/** 数の並び（配列かカンマ区切り）を、範囲内の重ならない数に */
+function fam_int_list(mixed $v, int $min, int $max): array
+{
+    $list = is_string($v) ? explode(',', $v) : (array)$v;
+    $out = [];
+    foreach ($list as $x) {
+        if (is_numeric($x) && (int)$x >= $min && (int)$x <= $max) {
+            $out[(int)$x] = (int)$x;
+        }
+    }
+    ksort($out);
+    return array_values($out);
 }
 
 function fam_event_save(array $in, string $source = 'web'): int
@@ -314,12 +349,14 @@ function fam_event_save(array $in, string $source = 'web'): int
     $id = (int)($in['id'] ?? 0);
     if ($id > 0) {
         $st = $pdo->prepare('UPDATE fam_events SET title = ?, member_ids = ?, start_date = ?, end_date = ?, start_time = ?,
-            end_time = ?, repeat_rule = ?, repeat_until = ?, note = ?, annual = ?, updated_at = ? WHERE id = ?');
+            end_time = ?, repeat_rule = ?, repeat_until = ?, note = ?, annual = ?, repeat_days = ?, repeat_weeks = ?, remind = ?,
+            updated_at = ? WHERE id = ?');
         $st->execute([...array_values($e), $now, $id]);
         return $id;
     }
     $st = $pdo->prepare('INSERT INTO fam_events (title, member_ids, start_date, end_date, start_time, end_time, repeat_rule,
-        repeat_until, note, annual, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        repeat_until, note, annual, repeat_days, repeat_weeks, remind, source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $st->execute([...array_values($e), $source, $now, $now]);
     return (int)$pdo->lastInsertId();
 }
@@ -341,7 +378,9 @@ function fam_occurrences(string $from, string $to): array
         $start = new DateTimeImmutable(substr((string)$ev['start_date'], 0, 10));
         $len = (int)$start->diff(new DateTimeImmutable(substr((string)$ev['end_date'], 0, 10)))->days;
         $until = $ev['repeat_until'] ? substr((string)$ev['repeat_until'], 0, 10) : $to;
-        foreach (fam_repeat_dates($start, (string)$ev['repeat_rule'], $from, min($to, $until), $len) as $d) {
+        $days = fam_int_list((string)($ev['repeat_days'] ?? ''), 0, 6);
+        $weeks = fam_int_list((string)($ev['repeat_weeks'] ?? ''), 1, 5);
+        foreach (fam_repeat_dates($start, (string)$ev['repeat_rule'], $from, min($to, $until), $len, $days, $weeks) as $d) {
             $out[] = fam_event_out($ev, $d, $d->modify("+$len days"));
         }
     }
@@ -349,14 +388,44 @@ function fam_occurrences(string $from, string $to): array
     return $out;
 }
 
-/** 繰り返しの開始日のうち、[from, to] にかかる（複数日なら一部でもかかる）ものを返す */
-function fam_repeat_dates(DateTimeImmutable $start, string $rule, string $from, string $to, int $len): array
+/** 繰り返しの開始日のうち、[from, to] にかかる（複数日なら一部でもかかる）ものを返す。
+ *  毎週は $days の曜日（なければ開始日の曜日）、毎月 第◯◯曜日は $weeks の週 × $days の曜日 */
+function fam_repeat_dates(DateTimeImmutable $start, string $rule, string $from, string $to, int $len, array $days = [], array $weeks = []): array
 {
     $dates = [];
     $fromD = (new DateTimeImmutable($from))->modify("-$len days")->format('Y-m-d');
+    $startS = $start->format('Y-m-d');
     if ($rule === '') {
-        $s = $start->format('Y-m-d');
-        return ($s <= $to && $s >= $fromD) ? [$start] : [];
+        return ($startS <= $to && $startS >= $fromD) ? [$start] : [];
+    }
+    if ($rule === 'weekly' && $days) {
+        $d = new DateTimeImmutable(max($startS, $fromD));
+        for (; $d->format('Y-m-d') <= $to; $d = $d->modify('+1 day')) {
+            if (in_array((int)$d->format('w'), $days, true)) {
+                $dates[] = $d;
+            }
+        }
+        return $dates;
+    }
+    if ($rule === 'nthweek') {
+        $days = $days ?: [(int)$start->format('w')];
+        $weeks = $weeks ?: [intdiv((int)$start->format('j') - 1, 7) + 1];
+        $m = new DateTimeImmutable(substr(max($startS, $fromD), 0, 7) . '-01');
+        for (; $m->format('Y-m-d') <= $to; $m = $m->modify('first day of next month')) {
+            foreach ($days as $dow) {
+                // その月の最初の $dow 曜日から、7 日ずつ
+                $first = $m->modify('+' . ((($dow - (int)$m->format('w')) + 7) % 7) . ' days');
+                foreach ($weeks as $n) {
+                    $d = $first->modify('+' . (7 * ($n - 1)) . ' days');
+                    $s = $d->format('Y-m-d');
+                    if ($d->format('m') === $m->format('m') && $s >= $startS && $s >= $fromD && $s <= $to) {
+                        $dates[$s] = $d;
+                    }
+                }
+            }
+        }
+        ksort($dates);
+        return array_values($dates);
     }
     for ($n = 0; $n < 5000; $n++) {
         $d = match ($rule) {
@@ -408,6 +477,9 @@ function fam_event_out(array $ev, DateTimeImmutable $d, DateTimeImmutable $end):
         'base_end_date' => substr((string)$ev['end_date'], 0, 10),
         'note' => $ev['note'],
         'annual' => !empty($ev['annual']),
+        'repeat_days' => fam_int_list((string)($ev['repeat_days'] ?? ''), 0, 6),
+        'repeat_weeks' => fam_int_list((string)($ev['repeat_weeks'] ?? ''), 1, 5),
+        'remind' => !empty($ev['remind']),
     ];
 }
 

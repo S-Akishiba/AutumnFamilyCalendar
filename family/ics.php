@@ -34,7 +34,8 @@ $fold = function (string $line): string {
 
 $st = fam_pdo()->query('SELECT * FROM fam_events WHERE end_date >= ' . fam_pdo()->quote(date('Y-m-d', strtotime('-1 year'))) .
     " OR repeat_rule <> '' ORDER BY start_date");
-$rrule = ['weekly' => 'WEEKLY', 'monthly' => 'MONTHLY', 'yearly' => 'YEARLY'];
+$rrule = ['weekly' => 'WEEKLY', 'nthweek' => 'MONTHLY', 'monthly' => 'MONTHLY', 'yearly' => 'YEARLY'];
+$byday = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
 $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//family-calendar//JA', 'CALSCALE:GREGORIAN',
     'X-WR-CALNAME:家族カレンダー', 'X-WR-TIMEZONE:Asia/Tokyo', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
@@ -59,6 +60,19 @@ foreach ($st->fetchAll() as $ev) {
     }
     if (isset($rrule[$ev['repeat_rule']])) {
         $r = 'RRULE:FREQ=' . $rrule[$ev['repeat_rule']];
+        $days = fam_int_list((string)($ev['repeat_days'] ?? ''), 0, 6);
+        $weeks = fam_int_list((string)($ev['repeat_weeks'] ?? ''), 1, 5);
+        if ($ev['repeat_rule'] === 'weekly' && $days) {
+            $r .= ';BYDAY=' . implode(',', array_map(fn($d) => $byday[$d], $days));       // 例 BYDAY=TU,FR
+        } elseif ($ev['repeat_rule'] === 'nthweek' && $days && $weeks) {
+            $by = [];
+            foreach ($weeks as $n) {
+                foreach ($days as $d) {
+                    $by[] = $n . $byday[$d];                                                // 例 BYDAY=2WE,4WE
+                }
+            }
+            $r .= ';BYDAY=' . implode(',', $by);
+        }
         if ($ev['repeat_until']) {
             $r .= ';UNTIL=' . str_replace('-', '', substr((string)$ev['repeat_until'], 0, 10)) . 'T235959Z';
         }

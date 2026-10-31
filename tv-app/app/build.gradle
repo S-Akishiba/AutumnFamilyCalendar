@@ -21,8 +21,8 @@ android {
         minSdk 26
         targetSdk 35
         // 更新するときはここを 1 つ上げる（テレビは familytv.json の versionCode と比べる）
-        versionCode 2
-        versionName '1.1'
+        versionCode 3
+        versionName '1.2'
         // 開く画面（鍵は URL に入れない。初回はテレビに番号が出て、iPhone で入れるとつながる）
         buildConfigField 'String', 'TV_URL', '"https://aitakt.gardenas.net/family/tv.php"'
         // 新しい版の情報

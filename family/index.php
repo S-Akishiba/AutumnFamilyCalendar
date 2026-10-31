@@ -22,7 +22,7 @@ $loggedIn = $configured && fam_logged_in();
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>家族カレンダー</title>
-<link rel="stylesheet" href="app.css?v=3">
+<link rel="stylesheet" href="app.css?v=4">
 </head>
 <body>
 <?php if (!$configured): ?>
@@ -91,6 +91,19 @@ $loggedIn = $configured && fam_logged_in();
         </label>
         <label class="until">いつまで<input type="date" name="repeat_until"></label>
       </div>
+      <fieldset class="weeksField" hidden>
+        <legend>第何週？（いくつでも）</legend>
+        <div class="chips pick" id="weekChips">
+          <?php for ($n = 1; $n <= 5; $n++): ?><button type="button" data-v="<?= $n ?>">第<?= $n ?></button><?php endfor; ?>
+        </div>
+      </fieldset>
+      <fieldset class="daysField" hidden>
+        <legend>何曜日？（いくつでも）</legend>
+        <div class="chips pick" id="dayChips">
+          <?php foreach (FAM_WEEKDAYS as $i => $w): ?><button type="button" data-v="<?= $i ?>"><?= h($w) ?></button><?php endforeach; ?>
+        </div>
+      </fieldset>
+      <label class="check"><input type="checkbox" name="remind"> 前の日にテレビで知らせる（ゴミの日など）</label>
       <label class="check"><input type="checkbox" name="annual"> 年間行事予定にのせる（テレビの右の画面に出ます）</label>
       <label>メモ<textarea name="note" rows="2" maxlength="2000"></textarea></label>
       <p class="hint" id="repeatHint" hidden>繰り返しの予定は、変更・削除するとすべての回に反映されます。</p>
@@ -127,7 +140,7 @@ $loggedIn = $configured && fam_logged_in();
   </dialog>
 
   <script>window.FAM_COLORS = <?= json_encode(FAM_COLORS) ?>;</script>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 <?php endif; ?>
 </body>
 </html>

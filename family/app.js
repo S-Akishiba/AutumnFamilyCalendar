@@ -120,15 +120,30 @@
     ).join('') || '<span class="hint">⚙ の設定でメンバーを登録すると色分けできます</span>';
   }
 
+  // 曜日・「第◯」のボタン（選んだ値の配列を読む・書く）
+  const picked = (id) => [...$(id).querySelectorAll('button.on')].map((b) => Number(b.dataset.v));
+  const pick = (id, vals) => [...$(id).children].forEach((b) => b.classList.toggle('on', vals.includes(Number(b.dataset.v))));
+
   function syncForm() {
     const f = $('eventForm');
+    const rule = f.repeat_rule.value;
     f.querySelector('.times').hidden = f.all_day.checked;
-    f.querySelector('.until').hidden = !f.repeat_rule.value;
+    f.querySelector('.until').hidden = !rule;
+    f.querySelector('.daysField').hidden = rule !== 'weekly' && rule !== 'nthweek';
+    f.querySelector('.weeksField').hidden = rule !== 'nthweek';
+    // まだ何も選んでいなければ、日付の曜日・その日が第何週かを選んでおく
+    const d = f.start_date.value ? parse(f.start_date.value) : new Date();
+    if ((rule === 'weekly' || rule === 'nthweek') && !picked('dayChips').length) pick('dayChips', [d.getDay()]);
+    if (rule === 'nthweek' && !picked('weekChips').length) pick('weekChips', [Math.floor((d.getDate() - 1) / 7) + 1]);
   }
+  $('dayChips').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) b.classList.toggle('on'); });
+  $('weekChips').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) b.classList.toggle('on'); });
 
   function openEditor(ev, day) {
     const f = $('eventForm');
     f.reset();
+    pick('dayChips', []);
+    pick('weekChips', []);
     editing = ev;
     $('editorTitle').textContent = ev ? '予定を修正' : '予定を追加';
     $('deleteBtn').hidden = !ev;
@@ -143,6 +158,9 @@
       f.end_time.value = ev.end_time || '';
       f.repeat_rule.value = ev.repeat_rule;
       f.repeat_until.value = ev.repeat_until || '';
+      f.remind.checked = !!ev.remind;
+      pick('dayChips', ev.repeat_days || []);
+      pick('weekChips', ev.repeat_weeks || []);
       f.note.value = ev.note;
       f.annual.checked = !!ev.annual;
     } else {
@@ -177,6 +195,9 @@
       repeat_until: f.repeat_until.value,
       note: f.note.value,
       annual: f.annual.checked,
+      remind: f.remind.checked,
+      repeat_days: picked('dayChips'),
+      repeat_weeks: picked('weekChips'),
     };
     try {
       await api('save', body);

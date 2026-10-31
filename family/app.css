@@ -92,6 +92,7 @@ legend { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { border-radius: 20px; padding: 6px 14px; border: 2px solid var(--c); color: var(--c); background: transparent; }
 .chips button.on { background: var(--c); color: #fff; }
+.chips.pick button { --c: var(--accent); min-width: 44px; padding: 6px 10px; }
 .actions { display: flex; gap: 8px; align-items: center; }
 .spacer { flex: 1; }
 .memberRow { display: grid; grid-template-columns: 44px 1fr 40px; gap: 8px; align-items: center; margin-bottom: 8px; }

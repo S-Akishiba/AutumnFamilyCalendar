@@ -181,17 +181,67 @@
     $('holiday').innerHTML = (hol ? `<span>${esc(hol)}</span>` : '') + noticeHtml();
     bigDay($('day0'), s, '今日', 4);
     bigDay($('day1'), addDays(s, 1), '明日', 3);
+    $('day0').dataset.day = ymd(s);
+    $('day1').dataset.day = ymd(addDays(s, 1));
     let html = '';
     for (let i = 2; i < DAYS; i++) html += smallDay(addDays(s, i));
     $('later').innerHTML = html;
+    [...$('later').children].forEach((el, i) => { el.dataset.day = ymd(addDays(s, i + 2)); });
+    renderMainDetail();
     renderMonths();
     renderYear();
   }
 
-  // ── 左の画面：今月から 3 か月分のカレンダー ──
+  // ── 選んだ日・月の予定を、省略せずに出す ──
+  const dateOf = (key) => new Date(`${key}T00:00:00`);
+  function fullTime(ev, key) {
+    if (ev.date !== ev.end_date) {
+      const s = dateOf(ev.date);
+      const e = dateOf(ev.end_date);
+      return `${s.getMonth() + 1}/${s.getDate()}〜${e.getMonth() + 1}/${e.getDate()}`;
+    }
+    if (!ev.start_time) return '終日';
+    return ev.end_time ? `${ev.start_time}〜${ev.end_time}` : ev.start_time;
+  }
+  function detailRows(evs, key) {
+    return evs.map((ev) => `<div class="dr"><div class="dt">${fullTime(ev, key)}</div>
+      <div class="db"><div class="dti">${esc(ev.title)}</div><div class="dwho">${whoTags(ev)}</div>
+      ${ev.note ? `<div class="dnote">${esc(ev.note)}</div>` : ''}</div></div>`).join('');
+  }
+  function dayDetailHtml(key) {
+    const d = dateOf(key);
+    const w = d.getDay();
+    const evs = eventsOn(key);
+    return `<h3><span class="${w === 0 || data.holidays[key] ? 'sun' : w === 6 ? 'sat' : ''}">${d.getMonth() + 1}月${d.getDate()}日（${WD[w]}）</span>
+      ${data.holidays[key] ? `<small class="sun">${esc(data.holidays[key])}</small>` : ''}</h3>
+      <div class="dlist">${detailRows(evs, key) || '<div class="none">予定はありません</div>'}</div>`;
+  }
+
+  // ── 選んでいる日・月（リモコンの ↑↓←→ で動かす）──
+  let mainSel = null;      // 真ん中：14 日のうち何日目（null＝選んでいない）
+  let monthSel = null;     // 3 か月：選んでいる日 'YYYY-MM-DD'
+  let yearSel = 0;         // 年間行事：今月から何か月目
+
+  function renderMainDetail() {
+    const el = $('mainDetail');
+    document.querySelectorAll('.view.main .sel').forEach((x) => x.classList.remove('sel'));
+    if (mainSel === null) { el.hidden = true; return; }
+    const key = ymd(addDays(startOfToday(), mainSel));
+    const box = document.querySelector(`.view.main [data-day="${key}"]`);
+    if (box) box.classList.add('sel');
+    el.innerHTML = dayDetailHtml(key) + '<div class="dhint">↑↓ 日を選ぶ ・ 戻る で閉じる</div>';
+    el.hidden = false;
+  }
+
+  // ── 左の画面：今月から 3 か月分のカレンダー＋選んだ日の予定 ──
+  const monthsRange = () => {
+    const t = startOfToday();
+    return [ymd(new Date(t.getFullYear(), t.getMonth(), 1)), ymd(new Date(t.getFullYear(), t.getMonth() + 3, 0))];
+  };
   function renderMonths() {
     const today = ymd(new Date());
     const t = startOfToday();
+    if (!monthSel) monthSel = today;
     let html = '';
     for (let k = 0; k < 3; k++) {
       const first = new Date(t.getFullYear(), t.getMonth() + k, 1);
@@ -208,6 +258,7 @@
         if (data.holidays[key]) cls.push('hol');
         if (key === today) cls.push('today');
         if (key < today) cls.push('past');
+        if (key === monthSel) cls.push('sel');
         const evs = eventsOn(key);
         const max = data.holidays[key] ? 3 : 4;
         const items = evs.slice(0, max).map((ev) => `<div class="e" style="border-color:${esc(colorOf(ev))}">${esc(ev.title)}</div>`).join('');
@@ -218,67 +269,121 @@
         <div class="wds">${WD.map((w) => `<span>${w}</span>`).join('')}</div>
         <div class="cells" style="grid-template-rows:repeat(${weeks},minmax(0,1fr))">${cells}</div></div>`;
     }
+    html += `<aside class="detail">${dayDetailHtml(monthSel)}<div class="dhint">↑↓←→ 日を選ぶ ・ 戻る で今日の画面へ</div></aside>`;
     $('viewMonths').innerHTML = html;
   }
 
-  // ── 右の画面：年間行事予定（今月から 12 か月。「年間行事予定にのせる」にした予定と祝日）──
-  const YEAR_ROWS = 7;
-  function renderYear() {
+  // ── 右の画面：年間行事予定（今月から 12 か月。「年間行事予定にのせる」にした予定と祝日）＋選んだ月の一覧 ──
+  const YEAR_ROWS = 5;
+  function yearRows(k) {
     const today = ymd(new Date());
     const t = startOfToday();
-    const annual = data.events.filter((ev) => ev.annual);
+    const first = new Date(t.getFullYear(), t.getMonth() + k, 1);
+    const from = ymd(first);
+    const to = ymd(new Date(first.getFullYear(), first.getMonth() + 1, 0));
+    const rows = [];
+    for (const ev of data.events.filter((x) => x.annual)) {
+      if (ev.date > to || ev.end_date < from) continue;
+      const d = dateOf(ev.date < from ? from : ev.date);
+      const end = ev.end_date !== ev.date ? `〜${Number(ev.end_date.slice(8))}` : '';
+      rows.push({ key: ev.date < from ? from : ev.date, hol: false, past: ev.end_date < today,
+        d: `${d.getDate()}(${WD[d.getDay()]})${end}`, t: ev.title, ev });
+    }
+    for (const [key, name] of Object.entries(data.holidays)) {
+      if (key < from || key > to) continue;
+      const d = dateOf(key);
+      rows.push({ key, hol: true, past: key < today, d: `${d.getDate()}(${WD[d.getDay()]})`, t: name });
+    }
+    rows.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.hol - b.hol));
+    return { first, rows };
+  }
+  function renderYear() {
     let html = '';
     for (let k = 0; k < 12; k++) {
-      const first = new Date(t.getFullYear(), t.getMonth() + k, 1);
-      const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
-      const from = ymd(first);
-      const to = ymd(last);
-      let rows = [];
-      for (const ev of annual) {
-        if (ev.date > to || ev.end_date < from) continue;
-        const d = new Date(`${(ev.date < from ? from : ev.date)}T00:00:00`);
-        const end = ev.end_date !== ev.date ? `〜${Number(ev.end_date.slice(8))}` : '';
-        rows.push({ key: ev.date < from ? from : ev.date, hol: false, past: ev.end_date < today,
-          d: `${d.getDate()}(${WD[d.getDay()]})${end}`, t: ev.title, ev });
-      }
-      for (const [key, name] of Object.entries(data.holidays)) {
-        if (key < from || key > to) continue;
-        const d = new Date(`${key}T00:00:00`);
-        rows.push({ key, hol: true, past: key < today, d: `${d.getDate()}(${WD[d.getDay()]})`, t: name });
-      }
-      rows.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.hol - b.hol));
+      const { first, rows } = yearRows(k);
+      const shown = rows.slice();
       // 入りきらないときは祝日から減らす
-      while (rows.length > YEAR_ROWS && rows.some((r) => r.hol)) {
-        const i = rows.map((r) => r.hol).lastIndexOf(true);
-        rows.splice(i, 1);
-      }
-      const shown = rows.slice(0, YEAR_ROWS);
-      const body = shown.map((r) => `<div class="r ${r.hol ? 'hol' : ''} ${r.past ? 'past' : ''}"><span class="d">${r.d}</span>
+      while (shown.length > YEAR_ROWS && shown.some((r) => r.hol)) shown.splice(shown.map((r) => r.hol).lastIndexOf(true), 1);
+      const body = shown.slice(0, YEAR_ROWS).map((r) => `<div class="r ${r.hol ? 'hol' : ''} ${r.past ? 'past' : ''}"><span class="d">${r.d}</span>
         <span class="t">${esc(r.t)}</span>${r.ev ? `<span class="w">${whoDots(r.ev)}</span>` : ''}</div>`).join('');
-      const more = rows.length > YEAR_ROWS ? `<div class="more">ほか ${rows.length - YEAR_ROWS} 件</div>` : '';
-      html += `<div class="ybox ${k === 0 ? 'now' : ''}"><h3>${first.getMonth() + 1}月${first.getMonth() === 0 || k === 0 ? `<small>${first.getFullYear()}年</small>` : ''}</h3>
+      const more = rows.length > YEAR_ROWS ? `<div class="more">ほか ${rows.length - Math.min(YEAR_ROWS, shown.length)} 件</div>` : '';
+      html += `<div class="ybox ${k === 0 ? 'now' : ''} ${k === yearSel ? 'sel' : ''}"><h3>${first.getMonth() + 1}月${first.getMonth() === 0 || k === 0 ? `<small>${first.getFullYear()}年</small>` : ''}</h3>
         ${body || '<div class="none">—</div>'}${more}</div>`;
     }
+    // 選んだ月：行事と祝日を全部
+    const { first, rows } = yearRows(yearSel);
+    const list = rows.map((r) => `<div class="dr ${r.hol ? 'hol' : ''} ${r.past ? 'past' : ''}"><div class="dt">${r.d}</div>
+      <div class="db"><div class="dti">${esc(r.t)}</div>${r.ev ? `<div class="dwho">${whoTags(r.ev)}</div>` : ''}
+      ${r.ev && r.ev.note ? `<div class="dnote">${esc(r.ev.note)}</div>` : ''}</div></div>`).join('');
+    html = `<aside class="detail"><h3>${first.getFullYear()}年${first.getMonth() + 1}月の行事</h3>
+      <div class="dlist">${list || '<div class="none">行事はありません</div>'}</div>
+      <div class="dhint">↑↓←→ 月を選ぶ ・ 戻る で今日の画面へ</div></aside>` + html;
     $('viewYear').innerHTML = html;
   }
 
-  // ── リモコンの ← → で画面を切り替える（2 分さわらなければ真ん中に戻る）──
+  // ── リモコン：真ん中で ← → は画面の切り替え、↑↓ で日を選ぶ。左右の画面では ↑↓←→ で日・月を選び、戻るで真ん中へ。
+  //    2 分さわらなければ真ん中に戻る ──
   const PAGES = ['months', 'main', 'year'];
-  let page = Math.max(0, PAGES.indexOf(new URLSearchParams(location.search).get('view') || 'main'));
-  let backTimer = null;
+  const fixedView = new URLSearchParams(location.search).get('view');
+  let page = Math.max(0, PAGES.indexOf(fixedView || 'main'));
+  let idleTimer = null;
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    if (fixedView) return;
+    idleTimer = setTimeout(() => { mainSel = null; renderMainDetail(); setPage(1); }, 120e3);
+  }
   function setPage(i) {
     page = Math.max(0, Math.min(PAGES.length - 1, i));
     $('views').style.setProperty('--cur', page);
     [...$('pager').children].forEach((el, j) => el.classList.toggle('on', j === page));
-    clearTimeout(backTimer);
-    if (page !== 1 && !new URLSearchParams(location.search).get('view')) backTimer = setTimeout(() => setPage(1), 120e3);
+    if (page === 0) { monthSel = ymd(new Date()); renderMonths(); }
+    if (page === 2) { yearSel = 0; renderYear(); }
+    if (page !== 1) { mainSel = null; renderMainDetail(); }
     if (page === 1 && map) setTimeout(() => map.invalidateSize(), 650);
+    resetIdle();
   }
-  // テレビのアプリ（1.2 から）はリモコンの ← → をここに渡す
+
+  /** リモコンのボタン（left / right / up / down / center / back）。処理したら true（アプリはそのボタンを使わない） */
+  function famKey(k) {
+    resetIdle();
+    if (k === 'back') {
+      if (page !== 1) { setPage(1); return true; }
+      if (mainSel !== null) { mainSel = null; renderMainDetail(); return true; }
+      return false;
+    }
+    if (page === 1) {
+      if (k === 'left' || k === 'right') { setPage(page + (k === 'left' ? -1 : 1)); return true; }
+      if (k === 'down') { mainSel = mainSel === null ? 0 : Math.min(DAYS - 1, mainSel + 1); renderMainDetail(); return true; }
+      if (k === 'up') { if (mainSel !== null) { mainSel = mainSel === 0 ? null : mainSel - 1; renderMainDetail(); } return true; }
+      if (k === 'center') {
+        if (mainSel !== null) { mainSel = null; renderMainDetail(); return true; }
+        return false; // アプリが読み直す
+      }
+      return false;
+    }
+    if (page === 0) {
+      const step = { left: -1, right: 1, up: -7, down: 7 }[k];
+      if (step) {
+        const [lo, hi] = monthsRange();
+        const next = ymd(addDays(dateOf(monthSel), step));
+        if (next >= lo && next <= hi) { monthSel = next; renderMonths(); }
+      }
+      return true;
+    }
+    const step = { left: -1, right: 1, up: -3, down: 3 }[k];
+    if (step) {
+      const next = yearSel + step;
+      if (next >= 0 && next < 12) { yearSel = next; renderYear(); }
+    }
+    return true;
+  }
+  window.famKey = famKey;
+  // アプリ 1.2 は ← → だけをここに渡す（画面の切り替えだけにする）
   window.famNav = (dir) => setPage(page + dir);
+  // パソコンのブラウザで確かめるとき用（矢印・Enter・Esc）
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') { setPage(page - 1); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { setPage(page + 1); e.preventDefault(); }
+    const k = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'center', Escape: 'back' }[e.key];
+    if (k && famKey(k)) e.preventDefault();
   });
 
   // ── 天気（気象庁の天気コード：1xx 晴・2xx 曇・3xx 雨・4xx 雪）──

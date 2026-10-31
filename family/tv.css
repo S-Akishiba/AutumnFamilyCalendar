@@ -59,7 +59,7 @@ body.night::after { opacity: .35; }
 .pager span.on { opacity: 1; color: var(--accent); font-weight: 700; }
 
 /* ── 左の画面：今月から 3 か月分のカレンダー ── */
-.months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4vw; }
+.months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.05fr); gap: 1.1vw; }
 .mcal { display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.2vh .8vw; min-height: 0; min-width: 0; }
 .mcal h2 { margin: 0 0 .6vh .3vw; font-size: 1.8vw; font-weight: 700; }
 .mcal h2 small { font-size: .55em; color: var(--muted); margin-left: .4vw; font-weight: 500; }
@@ -72,6 +72,7 @@ body.night::after { opacity: .35; }
 .mcal .c.out { visibility: hidden; }
 .mcal .c.today { background: var(--today); border-radius: .5vw; outline: .15vw solid var(--accent); outline-offset: -.15vw; }
 .mcal .c.past { opacity: .45; }
+.mcal .c.sel { opacity: 1; outline: .3vw solid var(--sat); outline-offset: -.3vw; border-radius: .5vw; background: var(--panel); position: relative; z-index: 1; }
 .mcal .n { font-family: "Outfit", "Roboto", sans-serif; font-size: 1.2vw; font-weight: 600; line-height: 1.1; }
 .mcal .c.sun .n, .mcal .c.hol .n { color: var(--sun); }
 .mcal .c.sat .n { color: var(--sat); }
@@ -80,7 +81,9 @@ body.night::after { opacity: .35; }
 .mcal .more { font-size: .72vw; color: var(--muted); }
 
 /* ── 右の画面：年間行事予定（12 か月） ── */
-.year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 1.1vh .9vw; }
+.year { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.25fr); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 1vh .9vw; }
+.year .detail { grid-column: 4; grid-row: 1 / span 4; }
+.ybox.sel { outline: .3vw solid var(--sat); outline-offset: -.3vw; }
 .ybox { background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: .9vh .9vw; min-height: 0; min-width: 0; overflow: hidden; }
 .ybox.now { outline: .2vw solid var(--accent); outline-offset: -.2vw; background: var(--today); }
 .ybox h3 { margin: 0 0 .5vh; font-size: 1.45vw; font-weight: 700; }
@@ -94,6 +97,31 @@ body.night::after { opacity: .35; }
 .ybox .r.past { opacity: .45; }
 .ybox .none { color: var(--muted); font-size: .9vw; }
 .ybox .more { color: var(--muted); font-size: .8vw; }
+
+/* ── 選んだ日・月の予定（省略せずに出す欄）── */
+.detail {
+  background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.6vh 1.2vw;
+  display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; border: .2vw solid var(--sat);
+}
+.detail[hidden] { display: none; }
+.detail h3 { margin: 0 0 1vh; font-size: 1.9vw; font-weight: 700; display: flex; align-items: baseline; gap: .8vw; flex-wrap: wrap; }
+.detail h3 small { font-size: .6em; }
+.detail .sun { color: var(--sun); }
+.detail .sat { color: var(--sat); }
+.detail .dlist { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 1.1vh; }
+.detail .dr { display: flex; gap: .9vw; padding-bottom: 1vh; border-bottom: .1vw solid var(--line); }
+.detail .dr.past { opacity: .5; }
+.detail .dt { flex: none; width: 7.4vw; color: var(--muted); font-size: 1.25vw; font-family: "Outfit", "Roboto", "Noto Sans JP", sans-serif; font-weight: 500; line-height: 1.5; }
+.detail .db { flex: 1; min-width: 0; }
+.detail .dti { font-size: 1.55vw; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.detail .dr.hol .dti { color: var(--sun); font-weight: 500; font-size: 1.3vw; }
+.detail .dwho { display: flex; gap: .3vw; flex-wrap: wrap; margin-top: .4vh; }
+.detail .dnote { margin-top: .5vh; font-size: 1.1vw; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.detail .none { color: var(--muted); font-size: 1.3vw; }
+.detail .dhint { margin-top: 1vh; font-size: .85vw; color: var(--muted); text-align: right; }
+/* 真ん中の画面：時計の場所に重ねる */
+.mainDetail { position: absolute; left: 0; top: 0; bottom: 0; width: calc((100% - 2vw) * .43); z-index: 600; }
+.view.main .day.sel { outline: .3vw solid var(--sat); outline-offset: -.3vw; }
 
 /* ── 左：日付・大きな時計・天気・雨雲 ── */
 .left { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto 1fr; min-height: 0; min-width: 0; overflow: hidden; }

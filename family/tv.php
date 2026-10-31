@@ -98,7 +98,7 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@300;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="tv.css?v=9">
+<link rel="stylesheet" href="tv.css?v=10">
 </head>
 <body>
 <div id="stage">
@@ -128,6 +128,8 @@ if (!fam_key_ok($key) && !fam_logged_in()) {
     <div class="day big" id="day1"></div>
     <div class="later" id="later"></div>
   </section>
+  <!-- ↑↓ で選んだ日の予定（時計の場所に重ねて出す） -->
+  <aside class="detail mainDetail" id="mainDetail" hidden></aside>
   </section>
   <!-- 右の画面：年間行事予定（リモコンの →） -->
   <section class="view year" id="viewYear"></section>
@@ -141,6 +143,6 @@ window.FAM_KEY = <?= json_encode($key) ?>;
 try { if (window.FAM_KEY) localStorage.setItem('fam_tv_key', window.FAM_KEY); } catch (e) { /* 保存できない環境 */ }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="tv.js?v=9"></script>
+<script src="tv.js?v=10"></script>
 </body>
 </html>

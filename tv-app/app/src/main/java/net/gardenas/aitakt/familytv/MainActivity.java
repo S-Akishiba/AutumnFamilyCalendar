@@ -22,7 +22,8 @@ import android.widget.Toast;
  * 家族カレンダーのテレビ表示（tv.php）を全画面で出し続けるだけのアプリ。
  * 画面は消さない（スクリーンセーバーにも切り替わらない）。つながらなければ 30 秒ごとにやり直す。
  * 新しい版は起動時と 6 時間ごとに確かめる（Updater）。
- * リモコン: 決定ボタン＝読み直し、決定ボタン長押し＝新しい版を確かめる、戻るボタン 2 回＝終了。
+ * リモコン: ↑↓←→・決定・戻るはまずページ（tv.js の famKey）に渡す。ページが使わなければ
+ * 決定ボタン＝読み直し（新しい版も確かめる）、戻るボタン 2 回＝終了。
  */
 public class MainActivity extends Activity {
 
@@ -34,7 +35,6 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable retry = () -> web.loadUrl(BuildConfig.TV_URL);
     private long lastBack = 0;
-    private boolean longPressed = false;
     private Updater updater;
     private final Runnable updateCheck = new Runnable() {
         @Override
@@ -101,32 +101,48 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * リモコンの ← → は WebView が画面の中の移動に使ってしまいページに届かないので、先に受け取ってページに渡す
-     * （tv.js の famNav(-1 / +1) で 3 か月のカレンダー・真ん中・年間行事予定を切り替える）
+     * リモコンのボタン（↑↓←→・決定・戻る）は WebView が画面の中の移動に使ってしまいページに届かないので、
+     * 先に受け取って tv.js の famKey('left' など) に渡す。ページが使わなかったボタンだけ、ここで処理する
+     * （決定＝読み直し、戻る 2 回＝終了）
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        int code = event.getKeyCode();
-        if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
-                int dir = code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
-                web.evaluateJavascript("window.famNav && window.famNav(" + dir + ")", null);
-            }
-            return true;
+        String name = keyName(event.getKeyCode());
+        if (name == null) {
+            return super.dispatchKeyEvent(event);
         }
-        return super.dispatchKeyEvent(event);
+        boolean arrow = !name.equals("center") && !name.equals("back");
+        if (event.getAction() == KeyEvent.ACTION_DOWN && (arrow || event.getRepeatCount() == 0)) {
+            web.evaluateJavascript("(window.famKey ? !!window.famKey('" + name + "') : false)", used -> {
+                if (!"true".equals(used)) {
+                    fallback(name);
+                }
+            });
+        }
+        return true;
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-            if (event.getRepeatCount() == 0) {
-                longPressed = false;
-                event.startTracking(); // 長押しを見分ける（離したときに読み直す）
-            }
-            return true;
+    private static String keyName(int code) {
+        switch (code) {
+            case KeyEvent.KEYCODE_DPAD_LEFT: return "left";
+            case KeyEvent.KEYCODE_DPAD_RIGHT: return "right";
+            case KeyEvent.KEYCODE_DPAD_UP: return "up";
+            case KeyEvent.KEYCODE_DPAD_DOWN: return "down";
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER: return "center";
+            case KeyEvent.KEYCODE_BACK: return "back";
+            default: return null;
         }
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
+    }
+
+    /** ページが使わなかったボタン */
+    private void fallback(String name) {
+        if (name.equals("center")) {
+            handler.removeCallbacks(retry);
+            web.loadUrl(BuildConfig.TV_URL);
+            Toast.makeText(this, "読み直しています（今は " + BuildConfig.VERSION_NAME + "）", Toast.LENGTH_SHORT).show();
+            updater.check(true); // ついでに新しい版も確かめる
+        } else if (name.equals("back")) {
             long now = System.currentTimeMillis();
             if (now - lastBack < 2000) {
                 finish();
@@ -134,34 +150,7 @@ public class MainActivity extends Activity {
                 lastBack = now;
                 Toast.makeText(this, "もう一度押すと終了します", Toast.LENGTH_SHORT).show();
             }
-            return true;
         }
-        return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-            longPressed = true;
-            Toast.makeText(this, "新しい版を確かめています（今は " + BuildConfig.VERSION_NAME + "）", Toast.LENGTH_SHORT).show();
-            updater.check(true);
-            return true;
-        }
-        return super.onKeyLongPress(keyCode, event);
-    }
-
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-            if (!longPressed && !event.isCanceled()) {
-                handler.removeCallbacks(retry);
-                web.loadUrl(BuildConfig.TV_URL);
-                Toast.makeText(this, "読み直しています", Toast.LENGTH_SHORT).show();
-            }
-            longPressed = false;
-            return true;
-        }
-        return super.onKeyUp(keyCode, event);
     }
 
     @Override

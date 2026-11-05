@@ -388,7 +388,8 @@
   }
   window.famKey = famKey;
   // アプリ 1.2 は ← → だけをここに渡す（画面の切り替えだけにする）
-  window.famNav = (dir) => setPage(page + dir);
+  // （雨雲レーダーを大きくしているときは、← → で地図を動かす）
+  window.famNav = (dir) => (radarBig ? famKey(dir < 0 ? 'left' : 'right') : setPage(page + dir));
   // パソコンのブラウザで確かめるとき用（矢印・Enter・Esc）
   document.addEventListener('keydown', (e) => {
     const k = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'center', Escape: 'back' }[e.key];

@@ -154,6 +154,12 @@ body.night::after { opacity: .35; }
 .weather .min { color: var(--sat); font-weight: 700; }
 .weather .pop { color: var(--muted); margin-left: .4vw; }
 
+/* 決定（または ↑）で雨雲レーダーを真ん中の画面いっぱいに */
+.view.main.radarBig .radar { position: absolute; inset: 0; z-index: 700; border: .25vw solid var(--sat); }
+.radarHint { display: none; position: absolute; left: 50%; bottom: 3vh; transform: translateX(-50%); z-index: 600;
+  background: var(--panel); border-radius: 3vw; padding: .6vh 1.4vw; font-size: 1.15vw; font-weight: 700; box-shadow: var(--shadow); white-space: nowrap; }
+.view.main.radarBig .radarHint { display: block; }
+.view.main.radarBig .radarLabel { font-size: 1.6vw; }
 .radar { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: var(--panel); min-height: 0; }
 #map { position: absolute; inset: 0; background: var(--panel); }
 .leaflet-container { font: inherit; }

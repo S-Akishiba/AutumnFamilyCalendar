@@ -330,7 +330,7 @@
   function resetIdle() {
     clearTimeout(idleTimer);
     if (fixedView) return;
-    idleTimer = setTimeout(() => { mainSel = null; renderMainDetail(); setPage(1); }, 120e3);
+    idleTimer = setTimeout(() => { mainSel = null; renderMainDetail(); closeRadar(); setPage(1); }, 120e3);
   }
   function setPage(i) {
     page = Math.max(0, Math.min(PAGES.length - 1, i));
@@ -346,6 +346,17 @@
   /** リモコンのボタン（left / right / up / down / center / back）。処理したら true（アプリはそのボタンを使わない） */
   function famKey(k) {
     resetIdle();
+    if (page === 1 && radarBig) {
+      const d = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }[k];
+      if (d && map) { const sz = map.getSize(); map.panBy([d[0] * sz.x * 0.3, d[1] * sz.y * 0.3]); }
+      if (k === 'center' && map) {
+        radarZoom = radarZoom >= RADAR_ZOOM_MAX ? RADAR_ZOOM_MIN : radarZoom + 1;
+        map.setZoom(radarZoom);
+      }
+      if (k === 'back') closeRadar();
+      showRadarZoom();
+      return true;
+    }
     if (k === 'back') {
       if (page !== 1) { setPage(1); return true; }
       if (mainSel !== null) { mainSel = null; renderMainDetail(); return true; }
@@ -353,12 +364,10 @@
     }
     if (page === 1) {
       if (k === 'left' || k === 'right') { setPage(page + (k === 'left' ? -1 : 1)); return true; }
+      if (mainSel === null && (k === 'center' || k === 'up')) { openRadar(); return true; }
       if (k === 'down') { mainSel = mainSel === null ? 0 : Math.min(DAYS - 1, mainSel + 1); renderMainDetail(); return true; }
       if (k === 'up') { if (mainSel !== null) { mainSel = mainSel === 0 ? null : mainSel - 1; renderMainDetail(); } return true; }
-      if (k === 'center') {
-        if (mainSel !== null) { mainSel = null; renderMainDetail(); return true; }
-        return false; // アプリが読み直す
-      }
+      if (k === 'center') { mainSel = null; renderMainDetail(); return true; }
       return false;
     }
     if (page === 0) {
@@ -456,10 +465,44 @@
   let radarFrames = [];
   let radarIdx = 0;
 
+  // 大きくした雨雲レーダー（真ん中の画面いっぱい）。リモコンで移動・拡大し、戻るで自宅中心・元の縮尺に戻す
+  const RADAR_ZOOM_MIN = 6;
+  const RADAR_ZOOM_MAX = 11;
+  let radarBig = false;
+  let radarZoom = 8;   // 拡大の段（地図の拡大は少し時間がかかるので、押した段をここで覚える）
+  let radarHome = null;
+  function openRadar() {
+    if (!map) return;
+    radarBig = true;
+    radarZoom = Math.min(RADAR_ZOOM_MAX, Math.max(RADAR_ZOOM_MIN, map.getZoom()));
+    $('viewMain').classList.add('radarBig');
+    setTimeout(() => map.invalidateSize(), 60);
+    showRadarZoom();
+  }
+  function closeRadar() {
+    if (!radarBig) return;
+    radarBig = false;
+    $('viewMain').classList.remove('radarBig');
+    // 自宅中心・元の縮尺にすぐ戻す
+    map.stop();
+    setTimeout(() => {
+      map.invalidateSize({ animate: false });
+      if (radarHome) map.setView([radarHome.lat, radarHome.lon], radarHome.zoom, { animate: false });
+    }, 60);
+  }
+  function showRadarZoom() {
+    if (!map) return;
+    const z = radarZoom;
+    $('radarZoom').textContent = `縮尺 ${'●'.repeat(z - RADAR_ZOOM_MIN + 1)}${'○'.repeat(RADAR_ZOOM_MAX - z)}`;
+  }
+
   function initMap(r) {
+    radarHome = { lat: r.lat, lon: r.lon, zoom: r.zoom };
     map = L.map('map', {
       zoomControl: false, attributionControl: false, dragging: false, keyboard: false,
       scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, touchZoom: false,
+      // リモコンで続けて拡大しても段がずれないよう、拡大のアニメーションはしない（テレビでは軽くもなる）
+      zoomAnimation: false, markerZoomAnimation: false,
     }).setView([r.lat, r.lon], r.zoom);
     L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
     setTimeout(() => map.invalidateSize(), 500); // 文字の読み込みで大きさが変わったときのため
